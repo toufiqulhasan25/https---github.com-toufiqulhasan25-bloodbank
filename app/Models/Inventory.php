@@ -11,7 +11,7 @@ class Inventory extends Model
 
     protected $fillable = [
         'blood_group',
-        'units',
+        'units', // আমরা কন্ট্রোলারেও এই নাম ব্যবহার করব
         'expiry_date'
     ];
 }

@@ -2,93 +2,76 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HospitalController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\BloodRequestController;
 use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\ReportController;
-
-Route::get('/', fn() => view('landing'));
-
-/* =======================
-   AUTH ROUTES
-======================= */
-Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [AuthController::class, 'registerForm']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/logout', [AuthController::class, 'logout']);
+use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\DonorController;
+use App\Http\Controllers\DonorSearchController;
 
 /* =======================
-   DONOR ROUTES
+    PUBLIC ROUTES
 ======================= */
-Route::middleware(['auth', 'role:donor'])->group(function () {
 
-    Route::get('/donor/dashboard', fn() => view('donor.dashboard'));
-
-    Route::get('/donor/appointment', [AppointmentController::class, 'create']);
-    Route::post('/donor/appointment', [AppointmentController::class, 'store']);
-
+// ল্যান্ডিং পেজ
+Route::get('/', function () {
+    return view('landing');
 });
 
-/* =======================
-   HOSPITAL ROUTES
-======================= */
-Route::middleware(['auth', 'role:hospital'])->group(function () {
+// রক্ত খোঁজার পেজ (Find Blood) - এখানে কন্ট্রোলার ব্যবহার করা হয়েছে
+Route::get('/find-blood', [DonorSearchController::class, 'index'])->name('find.blood');
 
-    Route::get('/hospital/dashboard', fn() => view('hospital.dashboard'));
-
-    Route::get('/hospital/request', [BloodRequestController::class, 'create']);
-    Route::post('/hospital/request', [BloodRequestController::class, 'store']);
-
+// রক্তদানের তথ্য (Donate)
+Route::get('/donate-info', function () {
+    return view('donate-info');
 });
 
-/* =======================
-   MANAGER ROUTES
-======================= */
-Route::middleware(['auth', 'role:manager'])->group(function () {
-
-    Route::get('/manager/dashboard', fn() => view('manager.dashboard'));
-
-    // Inventory
-    Route::get('/manager/inventory', [InventoryController::class, 'index']);
-    Route::post('/manager/inventory', [InventoryController::class, 'store']);
-
-    // Requests
-    Route::get('/manager/requests', [BloodRequestController::class, 'manage']);
-    Route::post('/manager/requests/{id}', [BloodRequestController::class, 'approve']);
-
-    // Appointments
-    Route::get('/manager/appointments', [AppointmentController::class, 'manage']);
-    Route::post('/manager/appointments/{id}', [AppointmentController::class, 'approve']);
-
-    // Reports
-    Route::get('/manager/reports', [ReportController::class, 'index']);
-
+// হাসপাতালের তথ্য (Hospitals)
+Route::get('/hospitals-info', function () {
+    return view('hospitals-info');
 });
 
-Route::get('/manager/expiry-alerts', [InventoryController::class, 'expiryAlerts']);
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/register', [AuthController::class, 'registerForm']);
+    Route::post('/register', [AuthController::class, 'register']);
+});
 
-Route::middleware('auth')->group(function () {
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
-    Route::get('/donor/dashboard', fn() => view('donor.dashboard'));
-    Route::get('/hospital/dashboard', fn() => view('hospital.dashboard'));
-    Route::get('/manager/dashboard', fn() => view('manager.dashboard'));
+/* =======================
+    AUTHENTICATED ROUTES (Role Based)
+======================= */
+Route::middleware(['auth'])->group(function () {
 
-    Route::get('/manager/inventory', [InventoryController::class, 'index']);
-    Route::post('/manager/inventory', [InventoryController::class, 'store']);
+    // --- DONOR ROUTES (Donor) ---
+    Route::middleware('role:donor')->prefix('donor')->group(function () {
+        Route::get('/dashboard', [DonorController::class, 'index']); 
+        Route::get('/appointment', [AppointmentController::class, 'create']);
+        Route::post('/appointment', [AppointmentController::class, 'store']);
+        Route::get('/history', [DonorController::class, 'history']);
+    });
 
-    Route::get('/hospital/request', [BloodRequestController::class, 'create']);
-    Route::post('/hospital/request', [BloodRequestController::class, 'store']);
+    // --- HOSPITAL ROUTES ---
+    Route::middleware('role:hospital')->prefix('hospital')->group(function () {
+        Route::get('/dashboard', [HospitalController::class, 'index']);
+        Route::get('/request', [BloodRequestController::class, 'create']);
+        Route::post('/request', [BloodRequestController::class, 'store']);
+    });
 
-    Route::get('/manager/requests', [BloodRequestController::class, 'manage']);
-    Route::post('/manager/requests/{id}', [BloodRequestController::class, 'approve']);
-
-    Route::get('/donor/appointment', [AppointmentController::class, 'create']);
-    Route::post('/donor/appointment', [AppointmentController::class, 'store']);
-
-    Route::get('/manager/appointments', [AppointmentController::class, 'manage']);
-    Route::post('/manager/appointments/{id}', [AppointmentController::class, 'approve']);
-
-    Route::get('/manager/reports', [ReportController::class, 'index']);
-    Route::get('/manager/expiry-alerts', [InventoryController::class, 'expiryAlerts']);
+    // --- MANAGER ROUTES ---
+    Route::middleware('role:manager')->prefix('manager')->group(function () {
+        Route::get('/dashboard', [ManagerController::class, 'index']);
+        Route::get('/inventory', [ManagerController::class, 'inventory']);
+        Route::post('/inventory', [InventoryController::class, 'store']);
+        Route::get('/expiry-alerts', [InventoryController::class, 'expiryAlerts']);
+        Route::get('/requests', [BloodRequestController::class, 'manage']);
+        Route::post('/requests/approve/{id}', [BloodRequestController::class, 'approve']);
+        Route::post('/requests/reject/{id}', [BloodRequestController::class, 'reject']);
+        Route::get('/appointments', [AppointmentController::class, 'manage']);
+        Route::post('/appointments/approve/{id}', [AppointmentController::class, 'approve']);
+        Route::get('/reports', [ManagerController::class, 'reports']);
+    });
 });
