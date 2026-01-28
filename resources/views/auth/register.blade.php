@@ -15,33 +15,19 @@
         .reg-side-info { background: var(--dark-blue); color: white; padding: 60px; width: 40%; display: flex; flex-direction: column; justify-content: center; }
         .reg-form-area { padding: 60px; width: 60%; position: relative; }
 
-        /* লগইন পেজের মতো কর্নার বাটন স্টাইল */
         .btn-home-corner {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: #f8f9fa;
-            color: var(--dark-blue);
-            border-radius: 50px;
-            padding: 8px 18px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            border: 1px solid #eee;
-            transition: 0.3s;
-            z-index: 10;
+            position: absolute; top: 30px; right: 30px; background: #f8f9fa; color: var(--dark-blue);
+            border-radius: 50px; padding: 8px 18px; font-size: 13px; font-weight: 600;
+            text-decoration: none; border: 1px solid #eee; transition: 0.3s; z-index: 10;
         }
-        .btn-home-corner:hover {
-            background: var(--primary-color);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(190, 30, 45, 0.2);
-        }
+        .btn-home-corner:hover { background: var(--primary-color); color: #fff; box-shadow: 0 4px 12px rgba(190, 30, 45, 0.2); }
 
         .form-label { font-weight: 600; color: var(--dark-blue); margin-bottom: 8px; }
-        .form-control, .form-select { border-radius: 10px; padding: 12px 15px; border: 1px solid #ddd; margin-bottom: 20px; }
+        .form-control, .form-select { border-radius: 10px; padding: 12px 15px; border: 1px solid #ddd; margin-bottom: 5px; }
         .form-control:focus { border-color: var(--primary-color); box-shadow: 0 0 0 0.25rem rgba(190, 30, 45, 0.1); }
-        .btn-register { background: var(--primary-color); color: white; width: 100%; padding: 15px; border-radius: 50px; font-weight: 700; border: none; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+        .btn-register { background: var(--primary-color); color: white; width: 100%; padding: 15px; border-radius: 50px; font-weight: 700; border: none; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; margin-top: 20px; }
         .btn-register:hover { background: #961824; transform: translateY(-2px); }
+        .error-text { color: var(--primary-color); font-size: 12px; margin-bottom: 10px; display: block; }
         
         @media (max-width: 768px) { 
             .reg-card { flex-direction: column; } 
@@ -51,7 +37,7 @@
     </style>
 </head>
 <body>
-    <div class="reg-card">
+    <div class="reg-card shadow-lg">
         <div class="reg-side-info d-none d-md-flex">
             <a href="/"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; filter: brightness(0) invert(1); margin-bottom: 40px;"></a>
             <h2 class="fw-bold mb-4">Start Your Journey as a Hero.</h2>
@@ -69,57 +55,64 @@
             </a>
 
             <h3 class="fw-bold mb-1 mt-2">Create Account</h3>
-            <p class="text-muted mb-4">Already have an account? <a href="/login" class="text-danger fw-bold text-decoration-none">Login</a></p>
+            <p class="text-muted mb-4">Already have an account? <a href="{{ url('/login') }}" class="text-danger fw-bold text-decoration-none">Login</a></p>
 
-            <form action="/register" method="POST">
+            <form action="{{ url('/register') }}" method="POST">
                 @csrf
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label" id="nameLabel">Full Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="John Doe" required>
+                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" placeholder="John Doe" value="{{ old('name') }}" required>
+                        @error('name') <span class="error-text">{{ $message }}</span> @enderror
                     </div>
                 </div>
+                
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Email Address</label>
-                        <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+                        <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" placeholder="john@example.com" value="{{ old('email') }}" required>
+                        @error('email') <span class="error-text">{{ $message }}</span> @enderror
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Who Are You?</label>
-                        <select name="user_type" id="userType" class="form-select" required onchange="toggleFields()">
-                            <option value="" selected disabled>Select Role</option>
-                            <option value="donor">Individual Donor</option>
-                            <option value="hospital">Hospital / Medical Center</option>
-                            <option value="manager">System Manager</option>
+                        <select name="role" id="userRole" class="form-select @error('role') is-invalid @enderror" required onchange="toggleFields()">
+                            <option value="donor" {{ old('role') == 'donor' ? 'selected' : '' }}>Individual Donor</option>
+                            <option value="hospital" {{ old('role') == 'hospital' ? 'selected' : '' }}>Hospital / Medical Center</option>
                         </select>
+                        @error('role') <span class="error-text">{{ $message }}</span> @enderror
                     </div>
                 </div>
+
                 <div class="row">
-                    <div class="col-md-6" id="bloodGroupArea">
+                    <div class="col-md-6 mb-3" id="bloodGroupArea">
                         <label class="form-label">Blood Group</label>
-                        <select name="blood_group" class="form-select">
+                        <select name="blood_group" class="form-select @error('blood_group') is-invalid @enderror">
                             <option value="" selected disabled>Select Group</option>
-                            <option value="A+">A+</option><option value="A-">A-</option>
-                            <option value="B+">B+</option><option value="B-">B-</option>
-                            <option value="O+">O+</option><option value="O-">O-</option>
-                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            @foreach(['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as $group)
+                                <option value="{{ $group }}" {{ old('blood_group') == $group ? 'selected' : '' }}>{{ $group }}</option>
+                            @endforeach
                         </select>
+                        @error('blood_group') <span class="error-text">{{ $message }}</span> @enderror
                     </div>
-                    <div class="col-md-6" id="phoneArea">
+                    <div class="col-md-6 mb-3" id="phoneArea">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control" placeholder="017XXXXXXXX" required>
+                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" placeholder="017XXXXXXXX" value="{{ old('phone') }}" required>
+                        @error('phone') <span class="error-text">{{ $message }}</span> @enderror
                     </div>
                 </div>
+
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required>
+                        @error('password') <span class="error-text">{{ $message }}</span> @enderror
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Confirm Password</label>
                         <input type="password" name="password_confirmation" class="form-control" placeholder="••••••••" required>
                     </div>
                 </div>
+
                 <button type="submit" class="btn-register shadow-sm">Create My Account</button>
             </form>
         </div>
@@ -127,20 +120,23 @@
 
     <script>
         function toggleFields() {
-            const userType = document.getElementById('userType').value;
+            const userRole = document.getElementById('userRole').value;
             const bloodGroupArea = document.getElementById('bloodGroupArea');
             const nameLabel = document.getElementById('nameLabel');
             const phoneArea = document.getElementById('phoneArea');
-            if (userType === 'hospital') {
+
+            if (userRole === 'hospital') {
                 bloodGroupArea.style.display = 'none';
                 nameLabel.innerText = 'Hospital Name';
-                phoneArea.className = 'col-md-12';
+                phoneArea.className = 'col-md-12 mb-3';
             } else {
                 bloodGroupArea.style.display = 'block';
                 nameLabel.innerText = 'Full Name';
-                phoneArea.className = 'col-md-6';
+                phoneArea.className = 'col-md-6 mb-3';
             }
         }
+        // পেজ লোড হওয়ার সময় কন্ডিশন চেক করার জন্য
+        window.onload = toggleFields;
     </script>
 </body>
 </html>

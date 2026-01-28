@@ -44,10 +44,9 @@
         .login-form-area { 
             padding: 60px; 
             width: 60%; 
-            position: relative; /* বাটন পজিশনিং এর জন্য */
+            position: relative; 
         }
 
-        /* কার্ডের ভেতরে ব্যাক বাটন */
         .btn-home-corner {
             position: absolute;
             top: 30px;
@@ -75,7 +74,7 @@
             border-radius: 10px; 
             padding: 12px 15px; 
             border: 1px solid #ddd; 
-            margin-bottom: 20px; 
+            margin-bottom: 5px; /* Error মেসেজের জন্য কমানো হয়েছে */
         }
 
         .form-control:focus { 
@@ -87,14 +86,15 @@
             background: none;
             border-radius: 0 10px 10px 0;
             border-left: none;
-            margin-bottom: 20px;
             cursor: pointer;
             color: #666;
+            height: 50px; /* ইনপুটের সমান উচ্চতা */
         }
 
         .password-input {
             border-right: none;
             border-radius: 10px 0 0 10px;
+            height: 50px;
         }
 
         .btn-login { 
@@ -131,7 +131,6 @@
             <a href="/"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; filter: brightness(0) invert(1); margin-bottom: 40px;"></a>
             <h2 class="fw-bold mb-4">Welcome Back, Hero.</h2>
             <p class="opacity-75">Log in to your account to continue saving lives and managing requests.</p>
-            
         </div>
 
         <div class="login-form-area">
@@ -140,34 +139,44 @@
             </a>
 
             <h3 class="fw-bold mb-1 mt-2">Account Login</h3>
-            <p class="text-muted mb-4">New here? <a href="/register" class="text-danger fw-bold text-decoration-none">Create account</a></p>
+            <p class="text-muted mb-4">New here? <a href="{{ url('/register') }}" class="text-danger fw-bold text-decoration-none">Create account</a></p>
 
-            <form action="/login" method="POST">
+            @if(session('error'))
+                <div class="alert alert-danger py-2 small">{{ session('error') }}</div>
+            @endif
+
+            <form action="{{ url('/login') }}" method="POST">
                 @csrf
-                <div class="mb-1">
+                <div class="mb-3">
                     <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" placeholder="john@example.com" value="{{ old('email') }}" required>
+                    @error('email')
+                        <div class="text-danger small">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <div class="mb-1">
+                <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="input-group">
-                        <input type="password" name="password" id="password" class="form-control password-input" placeholder="••••••••" required>
-                        <span class="input-group-text" onclick="togglePass()">
+                        <input type="password" name="password" id="password" class="form-control password-input @error('password') is-invalid @enderror" placeholder="••••••••" required>
+                        <span class="input-group-text border" onclick="togglePass()">
                             <i class="fa-solid fa-eye" id="eyeIcon"></i>
                         </span>
                     </div>
+                    @error('password')
+                        <div class="text-danger small">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="remember">
+                        <input type="checkbox" name="remember" class="form-check-input" id="remember">
                         <label class="form-check-label small text-muted" for="remember">Remember me</label>
                     </div>
                     <a href="#" class="text-muted small text-decoration-none">Forgot Password?</a>
                 </div>
 
-                <button type="submit" class="btn-login">Sign In</button>
+                <button type="submit" class="btn-login shadow-sm">Sign In</button>
             </form>
         </div>
     </div>

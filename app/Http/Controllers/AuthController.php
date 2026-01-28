@@ -15,30 +15,28 @@ class AuthController extends Controller
     }
 
     public function register(Request $req)
-    {
-        // ভ্যালিডেশনে নতুন ফিল্ডগুলো (user_type, blood_group, phone) যোগ করা হয়েছে
-        $data = $req->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6|confirmed', // confirmed দিলে password_confirmation চেক করবে
-            'user_type' => 'required|in:donor,hospital,manager', // রোল অনুযায়ী
-            'blood_group' => 'nullable|string',
-            'phone' => 'required|string|max:15',
-        ]);
+{
+    $data = $req->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255|unique:users,email',
+        'password' => 'required|string|min:6|confirmed',
+        'role' => 'required|in:donor,hospital',
+        // 'nullable' যোগ করা হয়েছে যেন হসপিটালের ক্ষেত্রে ব্লাড গ্রুপ না দিলেও এরর না দেয়
+        'blood_group' => $req->role == 'donor' ? 'required|string' : 'nullable|string',
+        'phone' => 'required|string|max:15',
+    ]);
 
-        // নতুন ডাটা দিয়ে ইউজার তৈরি
-        User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => 'donor', // ডিফল্টভাবে সবাই 'donor' হিসেবে রেজিস্টার হবে
-            'user_type' => $data['user_type'], // student/teacher/staff
-            'blood_group' => $data['blood_group'],
-            'phone' => $data['phone'],
-        ]);
+    User::create([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => Hash::make($data['password']),
+        'role' => $data['role'],
+        'blood_group' => $data['blood_group'] ?? null, // ব্লাড গ্রুপ না থাকলে null সেভ হবে
+        'phone' => $data['phone'],
+    ]);
 
-        return redirect('/login')->with('success', 'Registration successful. Please login.');
-    }
+    return redirect('/login')->with('success', 'Registration successful. Please login.');
+}
 
     public function loginForm()
     {
