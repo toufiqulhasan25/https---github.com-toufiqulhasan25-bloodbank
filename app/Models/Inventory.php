@@ -14,4 +14,9 @@ class Inventory extends Model
         'units', // আমরা কন্ট্রোলারেও এই নাম ব্যবহার করব
         'expiry_date'
     ];
+
+    public function isExpired()
+    {
+        return \Carbon\Carbon::now()->greaterThan($this->expiry_date);
+    }
 }

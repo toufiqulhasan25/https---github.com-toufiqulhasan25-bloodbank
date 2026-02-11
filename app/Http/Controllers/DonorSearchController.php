@@ -7,25 +7,33 @@ use App\Models\User; // যেখানে ডোনার এবং হসপ�
 
 class DonorSearchController extends Controller
 {
-    public function index(Request $request) {
-    $bloodGroup = $request->input('blood_group');
-    $location = $request->input('location');
-    $type = $request->input('type');
+    public function index(Request $request)
+    {
+        $bloodGroup = $request->input('blood_group');
+        $location = $request->input('location');
+        $type = $request->input('type');
 
-    $query = User::query(); // User model-e role ba type thaka lagbe
+        // শুধুমাত্র ডোনার এবং হসপিটালদের সার্চ রেজাল্টে রাখা (ম্যানেজার বা এডমিন নয়)
+        $query = User::whereIn('role', ['donor', 'hospital']);
 
-    if ($bloodGroup) {
-        $query->where('blood_group', $bloodGroup);
+        // ব্লাড গ্রুপ ফিল্টার
+        if ($request->filled('blood_group')) {
+            $query->where('blood_group', $bloodGroup);
+        }
+
+        // লোকেশন ফিল্টার
+        if ($request->filled('location')) {
+            $query->where('address', 'like', "%$location%");
+        }
+
+        // সোর্স টাইপ ফিল্টার (ডোনার নাকি হসপিটাল)
+        if ($request->filled('type') && $type !== 'all') {
+            $query->where('role', $type);
+        }
+
+        // get() এর বদলে paginate() ব্যবহার করুন যাতে total() এবং links() কাজ করে
+        $results = $query->latest()->paginate(10)->withQueryString();
+
+        return view('find-blood', compact('results'));
     }
-    if ($location) {
-        $query->where('address', 'like', "%$location%");
-    }
-    if ($type && $type !== 'all') {
-        $query->where('role', $type);
-    }
-
-    $results = $query->get();
-
-    return view('find-blood', compact('results'));
-}
 }

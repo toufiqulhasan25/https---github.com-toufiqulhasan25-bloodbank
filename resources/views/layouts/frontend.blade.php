@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,48 +20,41 @@
             color: var(--dark-blue);
             margin: 0;
             padding: 0;
+            background-color: #fff; /* Background fixed */
         }
 
         .navbar {
             background: #fff;
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            padding: 15px 0;
+            padding: 10px 0;
         }
 
-        .navbar-brand img {
-            height: 50px;
-        }
+        .navbar-brand img { height: 50px; }
 
         .nav-link {
             font-weight: 600;
             color: var(--dark-blue) !important;
-            margin: 0 15px;
+            margin: 0 10px;
         }
 
         .btn-join {
             background: var(--primary-color);
             color: white !important;
-            padding: 10px 25px;
+            padding: 8px 25px;
             border-radius: 50px;
             font-weight: 700;
             text-transform: uppercase;
             border: none;
-            font-size: 14px;
+            transition: 0.3s;
         }
 
         .btn-join:hover {
             background: #961824;
             transform: translateY(-2px);
-            color: white !important;
-            border-color: #BE1E2D !important;
+            box-shadow: 0 5px 15px rgba(190, 30, 45, 0.3);
         }
 
-        footer {
-            background: #111;
-            color: white;
-            padding: 40px 0;
-            margin-top: 60px;
-        }
+        main { min-height: 70vh; } /* Content area visibility fix */
     </style>
     @yield('extra_css')
 </head>
@@ -70,107 +62,83 @@
 <body>
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="/"><img src="{{ asset('images/logo.png') }}" alt="Logo"></a>
+            <a class="navbar-brand" href="/">
+                <img src="{{ asset('images/logo.png') }}" alt="NIYD Logo" onerror="this.src='https://via.placeholder.com/150x50?text=NIYD+Logo'">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="{{ route('find.blood') }}">Find Blood</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/donate-info') }}">Donate</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                    <li class="nav-item"><a href="/register" class="btn btn-join">Join Now</a></li>
+
+                    @guest
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                        <li class="nav-item"><a href="/register" class="btn btn-join ms-lg-3">Join Now</a></li>
+                    @endguest
+
+                    @auth
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa-solid fa-circle-user fs-4 me-2"></i>
+                                {{ Auth::user()->name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-3" aria-labelledby="navbarDropdown">
+                                @if(Auth::user()->role == 'hospital')
+                                    <li><a class="dropdown-item" href="{{ url('/hospital/dashboard') }}"><i class="fa-solid fa-gauge me-2"></i>Dashboard</a></li>
+                                @elseif(Auth::user()->role == 'donor')
+                                    <li><a class="dropdown-item" href="{{ url('/donor/dashboard') }}"><i class="fa-solid fa-gauge me-2"></i>Dashboard</a></li>
+                                @elseif(Auth::user()->role == 'manager')
+                                    <li><a class="dropdown-item" href="{{ route('manager.dashboard') }}"><i class="fa-solid fa-gauge me-2"></i>Dashboard</a></li>
+                                @endif
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{{ url('/logout') }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    @endauth
                 </ul>
             </div>
         </div>
     </nav>
 
-    @yield('content')
+    <main>
+        @yield('content')
+    </main>
 
     <footer class="py-5 bg-dark text-white mt-5">
         <div class="container">
-            <div class="row g-4">
+            <div class="row g-4 text-center text-md-start">
                 <div class="col-lg-4">
-                    <img src="{{ asset('images/logo.png') }}" class="mb-4"
-                        style="height: 45px; filter: brightness(0) invert(1);">
-                    <p class="opacity-75 small">
-                        NIYD Blood Bank is a dedicated platform for students, teachers, and staff to bridge the gap
-                        between blood donors and those in need. Join our life-saving community today.
-                    </p>
-                    <div class="mt-4">
-                        <a href="#" class="text-white me-3 opacity-75 hover-danger"><i
-                                class="fa-brands fa-facebook fs-5"></i></a>
-                        <a href="#" class="text-white me-3 opacity-75 hover-danger"><i
-                                class="fa-brands fa-twitter fs-5"></i></a>
-                        <a href="#" class="text-white me-3 opacity-75 hover-danger"><i
-                                class="fa-brands fa-instagram fs-5"></i></a>
-                        <a href="#" class="text-white opacity-75 hover-danger"><i
-                                class="fa-brands fa-linkedin fs-5"></i></a>
-                    </div>
+                    <h4 class="text-danger fw-bold">NIYD Blood Bank</h4>
+                    <p class="opacity-75 small">Connecting students, teachers, and staff for a noble cause. Your one drop can save a life.</p>
                 </div>
-
-                <div class="col-lg-2 col-md-4">
+                <div class="col-lg-4">
                     <h5 class="fw-bold mb-4">Quick Links</h5>
                     <ul class="list-unstyled opacity-75 small">
-                        <li class="mb-2"><a href="/" class="text-white text-decoration-none">Home</a></li>
-                        <li class="mb-2"><a href="/find-blood" class="text-white text-decoration-none">Find Donors</a>
-                        </li>
-                        <li class="mb-2"><a href="/register" class="text-white text-decoration-none">Become a Donor</a>
-                        </li>
-                        <li class="mb-2"><a href="/hospitals" class="text-white text-decoration-none">Hospitals</a></li>
+                        <li><a href="/" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="/find-blood" class="text-white text-decoration-none">Find Donors</a></li>
+                        <li><a href="/register" class="text-white text-decoration-none">Become a Hero</a></li>
                     </ul>
                 </div>
-
-                <div class="col-lg-2 col-md-4">
-                    <h5 class="fw-bold mb-4">Support</h5>
-                    <ul class="list-unstyled opacity-75 small">
-                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">FAQs</a></li>
-                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Privacy Policy</a></li>
-                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Terms of Service</a></li>
-                        <li class="mb-2"><a href="/contact" class="text-white text-decoration-none">Contact Us</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-4 col-md-4">
-                    <h5 class="fw-bold mb-4">Contact Us</h5>
-                    <ul class="list-unstyled opacity-75 small">
-                        <li class="mb-3 d-flex align-items-center">
-                            <i class="fa-solid fa-location-dot me-3 text-danger"></i>
-                            <span>Your Campus Address, City, Country</span>
-                        </li>
-                        <li class="mb-3 d-flex align-items-center">
-                            <i class="fa-solid fa-phone me-3 text-danger"></i>
-                            <span>+880 1234 567 890</span>
-                        </li>
-                        <li class="mb-3 d-flex align-items-center">
-                            <i class="fa-solid fa-envelope me-3 text-danger"></i>
-                            <span>support@niydbloodbank.com</span>
-                        </li>
-                    </ul>
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-4">Contact</h5>
+                    <p class="small opacity-75"><i class="fa-solid fa-envelope me-2"></i> support@niydbloodbank.com</p>
+                    <p class="small opacity-75"><i class="fa-solid fa-location-dot me-2"></i> NIYD Campus Center</p>
                 </div>
             </div>
-
-            <hr class="my-5 opacity-25">
-
-            <div class="text-center">
-                <p class="opacity-50 small mb-0">© {{ date('Y') }} NIYD Blood Bank Management System. Built with ❤️ for
-                    the Community.</p>
-            </div>
+            <hr class="my-4 opacity-25">
+            <p class="text-center opacity-50 small mb-0">© {{ date('Y') }} NIYD Blood Bank. Built with ❤️</p>
         </div>
     </footer>
 
-    <style>
-        .hover-danger:hover {
-            color: #BE1E2D !important;
-            opacity: 1 !important;
-            transition: 0.3s;
-        }
-
-        footer ul li a:hover {
-            color: #BE1E2D !important;
-            padding-left: 5px;
-            transition: 0.3s;
-        }
-    </style>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @yield('extra_js')
 </body>
-
 </html>

@@ -19,6 +19,19 @@
                         @csrf
                         
                         <div class="row">
+                            <div class="col-12 mb-4">
+                                <label class="form-label fw-semibold">Select Hospital / Blood Bank</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-hospital text-danger"></i></span>
+                                    <select name="hospital_id" class="form-select border-start-0 bg-light" required>
+                                        <option value="" selected disabled>Choose where you want to donate</option>
+                                        @foreach($hospitals as $hospital)
+                                            <option value="{{ $hospital->id }}">{{ $hospital->name }} - {{ $hospital->address }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="col-md-6 mb-4">
                                 <label class="form-label fw-semibold">Your Full Name</label>
                                 <div class="input-group">
@@ -33,15 +46,10 @@
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-droplet text-danger"></i></span>
                                     <select name="blood_group" class="form-select border-start-0 bg-light" required>
-                                        <option value="" selected disabled>Select Group</option>
-                                        <option value="A+">A+</option>
-                                        <option value="A-">A-</option>
-                                        <option value="B+">B+</option>
-                                        <option value="B-">B-</option>
-                                        <option value="AB+">AB+</option>
-                                        <option value="AB-">AB-</option>
-                                        <option value="O+">O+</option>
-                                        <option value="O-">O-</option>
+                                        <option value="" disabled>Select Group</option>
+                                        @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
+                                            <option value="{{ $group }}" {{ (auth()->user()->blood_group == $group) ? 'selected' : '' }}>{{ $group }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -64,9 +72,10 @@
                             </div>
                         </div>
 
+                        {{-- আপনার কন্ট্রোলারে 'notes' এর বদলে 'note' (সিঙ্গুলার) থাকলে নাম মিলিয়ে নিন --}}
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Notes (Optional)</label>
-                            <textarea name="notes" class="form-control bg-light" rows="2" placeholder="Any health info or specific requirements?"></textarea>
+                            <textarea name="note" class="form-control bg-light" rows="2" placeholder="Any health info or specific requirements?"></textarea>
                         </div>
 
                         <div class="d-grid mt-2">
@@ -89,20 +98,12 @@
 </div>
 
 <style>
-    /* Focus styling for input fields */
     .form-control:focus, .form-select:focus {
         border-color: #dc3545;
         box-shadow: none;
         background-color: #fff !important;
     }
-    
-    .input-group-text {
-        border: 1px solid #ced4da;
-    }
-
-    .form-label {
-        font-size: 0.9rem;
-        color: #495057;
-    }
+    .input-group-text { border: 1px solid #ced4da; }
+    .form-label { font-size: 0.9rem; color: #495057; }
 </style>
 @endsection

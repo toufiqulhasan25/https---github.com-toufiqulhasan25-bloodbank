@@ -102,6 +102,14 @@
                 </div>
 
                 <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Address / Location</label>
+                        <input type="text" name="address" class="form-control @error('address') is-invalid @enderror" placeholder="e.g. Cumilla, Dhaka" value="{{ old('address') }}" required>
+                        @error('address') <span class="error-text">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Password</label>
                         <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required>
@@ -135,7 +143,6 @@
                 phoneArea.className = 'col-md-6 mb-3';
             }
         }
-        // পেজ লোড হওয়ার সময় কন্ডিশন চেক করার জন্য
         window.onload = toggleFields;
     </script>
 </body>

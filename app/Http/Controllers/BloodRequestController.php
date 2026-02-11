@@ -13,7 +13,8 @@ class BloodRequestController extends Controller
 {
     public function create()
     {
-        return view('hospital.request');
+        // ভিউ ফাইলের নাম আপনার ফোল্ডার অনুযায়ী 'hospital.request_blood' হতে পারে
+        return view('hospital.request_blood');
     }
 
     public function store(Request $r)
@@ -21,56 +22,102 @@ class BloodRequestController extends Controller
         Log::info('BloodRequest store called', ['user_id' => Auth::id()]);
         
         $data = $r->validate([
-            'hospital_name' => 'required|string|max:255',
-            'blood_group'   => 'required|string|max:10',
-            'units'         => 'required|integer|min:1',
+            'patient_name' => 'required|string|max:255',
+            'blood_group'  => 'required|string|max:10',
+            'bags_needed'  => 'required|integer|min:1',
+            'phone'        => 'required|string',
+            'location'     => 'required|string',
+            'reason'       => 'nullable|string',
         ]);
 
-        // রিকোয়েস্টের সাথে লগইন করা ইউজারের আইডি সেভ করা
-        $data['user_id'] = Auth::id(); 
-        $data['status'] = 'pending';
-
-        BloodRequest::create($data);
+        // ডাটাবেস কলাম অনুযায়ী ডাটা ম্যাপ করা
+        BloodRequest::create([
+            'hospital_id'  => Auth::id(),
+            'patient_name' => $data['patient_name'],
+            'blood_group'  => $data['blood_group'],
+            'bags_needed'  => $data['bags_needed'],
+            'phone'        => $data['phone'],
+            'location'     => $data['location'],
+            'reason'       => $data['reason'],
+            'status'       => 'pending',
+        ]);
         
         return redirect('/hospital/dashboard')->with('success', 'Blood request submitted successfully');
     }
 
     public function manage()
     {
-        // সব রিকোয়েস্ট লেটেস্ট অনুযায়ী দেখাবে
-        $requests = BloodRequest::latest()->get();
+        // ম্যানেজার সব রিকোয়েস্ট দেখতে পারবে
+        $requests = BloodRequest::with('hospital')->latest()->get();
         return view('manager.requests', compact('requests'));
     }
 
     public function approve($id)
-    {
-        $req = BloodRequest::findOrFail($id);
+{
+    $req = BloodRequest::findOrFail($id);
 
-        if ($req->status !== 'pending') {
-            return back()->with('error', 'Request is already processed.');
+    // ১. অলরেডি প্রসেসড কি না চেক
+    if ($req->status !== 'pending') {
+        return back()->with('error', 'This request has already been processed.');
+    }
+
+    // ট্রানজেকশন শুরু যাতে ডাটাবেস এরর না হয়
+    return DB::transaction(function () use ($req) {
+        
+        // ২. ইনভেন্টরি চেক (শুধুমাত্র যেগুলো এক্সপায়ার হয়নি এবং এভেলেবল আছে)
+        $totalAvailable = Inventory::where('blood_group', $req->blood_group)
+                            ->where('expiry_date', '>', now()) // Expiration Tracking
+                            ->sum('units');
+
+        // ৩. পর্যাপ্ত স্টক চেক করা
+        if ($totalAvailable < $req->bags_needed) {
+            return back()->with('error', "Insufficient fresh stock! Available: {$totalAvailable} units.");
         }
 
-        // DB Transaction ব্যবহার করে স্টক কমানোর লজিক
-        return DB::transaction(function () use ($req) {
-            $inv = Inventory::where('blood_group', $req->blood_group)
-                            ->lockForUpdate()
-                            ->first();
+        // ৪. স্টক কমানো (FIFO - First In First Out পদ্ধতিতে কমানো ভালো যাতে পুরনো রক্ত আগে বিলি হয়)
+        $needed = $req->bags_needed;
+        $items = Inventory::where('blood_group', $req->blood_group)
+                            ->where('expiry_date', '>', now())
+                            ->orderBy('expiry_date', 'asc') // দ্রুত এক্সপায়ার হবে এমনগুলো আগে বের করা
+                            ->get();
 
-            if (!$inv) {
-                return back()->with('error', "No inventory found for Group: {$req->blood_group}");
+        foreach ($items as $item) {
+            if ($needed <= 0) break;
+
+            if ($item->units <= $needed) {
+                $needed -= $item->units;
+                $item->decrement('units', $item->units);
+                $item->update(['status' => 'dispatched']); // স্ট্যাটাস ট্র্যাকিং
+            } else {
+                $item->decrement('units', $needed);
+                $needed = 0;
             }
+        }
 
-            if ($inv->units < $req->units) {
-                return back()->with('error', 'Inventory stock is insufficient for this request.');
-            }
+        // ৫. রিকোয়েস্ট আপডেট করা (Issue blood units and track distribution)
+        $req->update([
+            'status' => 'approved',
+            'approved_at' => now()
+        ]);
 
-            // ১. রিকোয়েস্ট অ্যাপ্রুভ করা
-            $req->update(['status' => 'approved']);
-            
-            // ২. ইনভেন্টরি থেকে রক্ত কমানো (Decrement)
-            $inv->decrement('units', $req->units);
+        return back()->with('success', 'Blood units issued successfully and inventory updated.');
+    });
+}
 
-            return back()->with('success', 'Request approved and stock updated.');
-        });
+    public function reject($id)
+    {
+        $req = BloodRequest::findOrFail($id);
+        $req->update(['status' => 'rejected']);
+        return back()->with('success', 'Request rejected.');
     }
+
+    public function history()
+{
+    // বর্তমান লগইন করা হসপিটালের সব রিকোয়েস্ট দেখা যাবে
+    $requests = BloodRequest::where('hospital_id', Auth::id())
+                ->latest()
+                ->paginate(10);
+
+    return view('hospital.history', compact('requests'));
+}
 }

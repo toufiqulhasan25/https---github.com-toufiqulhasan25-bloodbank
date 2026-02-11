@@ -13,14 +13,13 @@ public function up()
 {
     Schema::create('appointments', function (Blueprint $table) {
         $table->id();
-        // এই লাইনটি যোগ করুন: এটি ইউজারের সাথে অ্যাপয়েন্টমেন্টের রিলেশন তৈরি করবে
-        $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
-        
-        $table->string('donor_name'); // ইউজারের নাম এখানে রাখতে পারেন
+        $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Donor
+        $table->foreignId('hospital_id')->constrained('users')->onDelete('cascade'); // Hospital
+        $table->string('donor_name'); 
         $table->string('blood_group');
         $table->date('date');
         $table->time('time');
-        $table->enum('status', ['pending', 'approved', 'completed'])->default('pending');
+        $table->enum('status', ['pending', 'approved', 'completed', 'cancelled'])->default('pending');
         $table->timestamps();
     });
 }

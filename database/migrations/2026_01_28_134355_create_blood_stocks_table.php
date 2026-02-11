@@ -9,15 +9,17 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
 {
-    Schema::create('blood_requests', function (Blueprint $table) {
+    Schema::create('blood_stocks', function (Blueprint $table) {
         $table->id();
-        $table->string('hospital_name');
+        $table->unsignedBigInteger('user_id'); // Hospital id
         $table->string('blood_group');
-        $table->integer('units');
-        $table->enum('status',['pending','approved','rejected'])->default('pending');
+        $table->integer('bags')->default(0);
         $table->timestamps();
+
+        // Hospital delete hole stock o delete hoye jabe
+        $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
     });
 }
 
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('blood_requests');
+        Schema::dropIfExists('blood_stocks');
     }
 };

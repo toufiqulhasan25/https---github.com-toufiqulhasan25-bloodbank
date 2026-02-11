@@ -21,6 +21,8 @@ class User extends Authenticatable
         'role',        // manager, hospital, donor
         'blood_group', // Shobar jonno
         'phone',       // Shobar jonno
+        'address', // এটি যোগ করুন
+        'last_donation_date',
     ];
 
     protected $hidden = [
