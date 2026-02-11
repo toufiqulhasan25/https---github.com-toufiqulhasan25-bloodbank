@@ -23,6 +23,8 @@ class User extends Authenticatable
         'phone',       // Shobar jonno
         'address', // এটি যোগ করুন
         'last_donation_date',
+        'dob',
+        'medical_conditions',
     ];
 
     protected $hidden = [

@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->string('password');
             $table->string('role')->default('donor'); // manager, hospital, donor
             $table->string('user_type')->nullable(); // student, teacher, staff
-            $table->string('blood_group')->nullable();
+            $table->string('blood_group')->nullable ();
             $table->string('phone')->nullable();
             $table->rememberToken();
             $table->timestamps();

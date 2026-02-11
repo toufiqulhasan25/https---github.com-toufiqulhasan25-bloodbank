@@ -127,4 +127,23 @@ class ManagerController extends Controller
     }
 
 
+    public function profileShow()
+    {
+        $user = auth()->user();
+        return view('manager.profile', compact('user'));
+    }
+
+    public function profileUpdate(Request $request)
+    {
+        $user = auth()->user();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $user->update($request->only(['name', 'phone']));
+        return back()->with('success', 'Manager profile updated successfully!');
+    }
+
+
 }

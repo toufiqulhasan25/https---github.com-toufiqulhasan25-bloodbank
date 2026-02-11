@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Donor\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HospitalController;
@@ -10,93 +9,108 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\DonorController;
 use App\Http\Controllers\DonorSearchController;
+use App\Http\Controllers\Donor\DashboardController;
 
-/* =======================
-    PUBLIC ROUTES
-======================= */
-
-// ল্যান্ডিং পেজ
+/* =========================================================
+    ১. পাবলিক রাউট
+   ========================================================= */
 Route::get('/', function () {
     return view('landing');
 });
-
-// রক্ত খোঁজার পেজ (Find Blood) - এখানে কন্ট্রোলার ব্যবহার করা হয়েছে
 Route::get('/find-blood', [DonorSearchController::class, 'index'])->name('find.blood');
-
-// রক্তদানের তথ্য (Donate)
 Route::get('/donate-info', function () {
     return view('donate-info');
 });
-
-// হাসপাতালের তথ্য (Hospitals)
 Route::get('/hospitals-info', function () {
     return view('hospitals-info');
 });
 
+/* =========================================================
+    ২. গেস্ট রাউট
+   ========================================================= */
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'registerForm']);
+    Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-/* =======================
-    AUTHENTICATED ROUTES (Role Based)
-======================= */
+/* =========================================================
+    ৩. অথেন্টিকেটেড রাউট
+   ========================================================= */
 Route::middleware(['auth'])->group(function () {
 
-    // --- DONOR ROUTES (Donor) ---
+    /* --- ডোনার রাউট (Donor) --- */
     Route::middleware('role:donor')->prefix('donor')->group(function () {
-        Route::get('/dashboard', [DonorController::class, 'index']);
-        Route::post('/donor/update-date', [DashboardController::class, 'updateDonationDate'])->name('donor.update.date');
-        Route::get('/appointment', [AppointmentController::class, 'create']);
-        Route::post('/appointment', [AppointmentController::class, 'store']);
-        Route::get('/history', [DonorController::class, 'history']);
+        Route::get('/dashboard', [DonorController::class, 'index'])->name('donor.dashboard');
+
+        // প্রোফাইল রাউটসমূহ
+        Route::get('/profile', [DonorController::class, 'profileShow'])->name('donor.profile.show');
+        Route::post('/profile-update', [DonorController::class, 'profileUpdate'])->name('donor.profile.update');
+
+        // অ্যাপয়েন্টমেন্ট এবং অন্যান্য
+        Route::get('/appointments/{id}', [DonorController::class, 'showAppointment'])->name('donor.appointments.show');
+        Route::get('/appointment', [AppointmentController::class, 'create'])->name('donor.appointment.create');
+        Route::post('/appointment', [AppointmentController::class, 'store'])->name('donor.appointment.store');
+        Route::get('/history', [DonorController::class, 'history'])->name('donor.history');
+        Route::get('/card', [DonorController::class, 'generateCard'])->name('donor.card');
+        Route::get('/certificate/{id}', [DonorController::class, 'downloadCertificate'])->name('donor.certificate');
+        Route::get('/notify/{id}/{group}', [DonorController::class, 'sendCallNotification'])->name('donor.notify');
     });
 
-    // --- HOSPITAL ROUTES ---
-    // --- HOSPITAL ROUTES ---
-    // --- HOSPITAL ROUTES ---
+    /* --- হাসপাতাল রাউট (Hospital) --- */
+    /* --- হাসপাতাল রাউট (Hospital) --- */
+    /* --- হাসপাতাল রাউট (Hospital) --- */
     Route::middleware('role:hospital')->prefix('hospital')->group(function () {
-        // আগের কোড:
-// Route::get('/dashboard', [HospitalController::class, 'index']); 
 
-        // পরিবর্তন করে এটি লিখুন:
+        // ১. ড্যাশবোর্ড এবং নোটিফিকেশন
         Route::get('/dashboard', [HospitalController::class, 'dashboard'])->name('hospital.dashboard');
+
+        // নোটিফিকেশন 'Read' মার্ক করার রাউট
+        Route::post('/mark-notifications-read', [HospitalController::class, 'dashboard'])->name('hospital.markRead');
+
+        // ২. ব্লাড রিকোয়েস্ট এবং ডিটেইলস (History Section)
         Route::get('/request', [BloodRequestController::class, 'create'])->name('hospital.request.create');
         Route::post('/request', [BloodRequestController::class, 'store'])->name('hospital.request.store');
-        Route::post('/hospital/mark-notifications-read', [HospitalController::class, 'markRead'])->name('hospital.markRead');
-
-        // আমি এখানে রাউটটি ঠিক করে দিয়েছি। এখন URL হবে: /hospital/history
         Route::get('/history', [BloodRequestController::class, 'history'])->name('hospital.history');
 
+        // হসপিটাল হিস্ট্রিতে 'Details' বাটনের জন্য এই রাউটটি কাজ করবে
+        Route::get('/request-details/{id}', [BloodRequestController::class, 'show'])->name('hospital.request.show');
+
+        // ৩. স্টক ম্যানেজমেন্ট
         Route::post('/update-stock', [HospitalController::class, 'updateStock'])->name('hospital.updateStock');
+
+        // ৪. প্রোফাইল ম্যানেজমেন্ট
+        Route::get('/profile', [HospitalController::class, 'profileShow'])->name('hospital.profile.show');
+        Route::post('/profile-update', [HospitalController::class, 'profileUpdate'])->name('hospital.profile.update');
     });
 
-    // --- MANAGER ROUTES ---
-    /* =======================
-    MANAGER ROUTES (Admin/Manager Panel)
-======================= */
-    Route::middleware(['auth', 'role:manager'])->prefix('manager')->group(function () {
-
-        // ড্যাশবোর্ড এবং ইনভেন্টরি
+    /* --- ম্যানেজার রাউট (Manager) --- */
+    /* --- ম্যানেজার রাউট (Manager) --- */
+    Route::middleware('role:manager')->prefix('manager')->group(function () {
+        // ১. ড্যাশবোর্ড ও প্রোফাইল
         Route::get('/dashboard', [ManagerController::class, 'index'])->name('manager.dashboard');
+        Route::get('/profile', [ManagerController::class, 'profileShow'])->name('manager.profile.show');
+        Route::post('/profile-update', [ManagerController::class, 'profileUpdate'])->name('manager.profile.update');
+
+        // ২. ইনভেন্টরি ম্যানেজমেন্ট
         Route::get('/inventory', [ManagerController::class, 'inventory'])->name('manager.inventory');
-        Route::post('/inventory', [InventoryController::class, 'store'])->name('manager.inventory.store');
-        Route::get('/expiry-alerts', [InventoryController::class, 'expiryAlerts'])->name('manager.expiryAlerts');
+        // ইনভেন্টরি ডাটা সেভ করার জন্য (যদি আলাদা InventoryController থাকে)
+        Route::post('/inventory/store', [InventoryController::class, 'store'])->name('manager.inventory.store');
 
-        // ব্লাড রিকোয়েস্ট ম্যানেজমেন্ট (হাসপাতাল থেকে আসা)
+        // ৩. ব্লাড রিকোয়েস্ট (Hospital Requests)
         Route::get('/requests', [BloodRequestController::class, 'manage'])->name('manager.requests');
-        Route::post('/requests/approve/{id}', [BloodRequestController::class, 'approve'])->name('manager.approve');
-        Route::post('/requests/reject/{id}', [BloodRequestController::class, 'reject'])->name('manager.reject');
+        Route::post('/requests/approve/{id}', [ManagerController::class, 'approveRequest'])->name('manager.approve');
+        Route::post('/requests/reject/{id}', [ManagerController::class, 'rejectRequest'])->name('manager.reject');
 
-        // অ্যাপয়েন্টমেন্ট ম্যানেজমেন্ট (ডোনারদের থেকে আসা)
+        // ৪. অ্যাপয়েন্টমেন্ট (Donor Appointments)
         Route::get('/appointments', [AppointmentController::class, 'manage'])->name('manager.appointments');
-        Route::post('/appointments/approve/{id}', [AppointmentController::class, 'approve'])->name('manager.appointments.approve');
+        Route::post('/appointments/approve/{id}', [ManagerController::class, 'approveAppointment'])->name('manager.appointments.approve');
 
-        // রিপোর্ট এবং অন্যান্য
+        // ৫. রিপোর্টস ও অন্যান্য
         Route::get('/reports', [ManagerController::class, 'reports'])->name('manager.reports');
+        Route::get('/expiry-alerts', [InventoryController::class, 'expiryAlerts'])->name('manager.expiryAlerts');
     });
 });

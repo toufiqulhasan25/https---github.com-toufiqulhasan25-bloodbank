@@ -159,13 +159,19 @@
                     <p class="lead mb-5 opacity-90">Join the largest network of students, teachers, and staff donors. Be the reason for someone's heartbeat today.</p>
                     
                     <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3">
-                        @auth
-                            <a href="/dashboard" class="btn btn-vital btn-lg">User Dashboard</a>
-                        @else
-                            <a href="/register" class="btn btn-vital btn-lg">Register as Donor</a>
-                            <a href="/find-blood" class="btn btn-outline-light btn-lg rounded-pill px-5">Search Blood</a>
-                        @endauth
-                    </div>
+    @auth
+        @if(Auth::user()->role == 'donor')
+            <a href="{{ route('donor.dashboard') }}" class="btn btn-vital btn-lg">Donor Dashboard</a>
+        @elseif(Auth::user()->role == 'hospital')
+            <a href="{{ route('hospital.dashboard') }}" class="btn btn-vital btn-lg">Hospital Dashboard</a>
+        @elseif(Auth::user()->role == 'manager')
+            <a href="{{ route('manager.dashboard') }}" class="btn btn-vital btn-lg">Manager Dashboard</a>
+        @endif
+    @else
+        <a href="{{ route('register') }}" class="btn btn-vital btn-lg">Register as Donor</a>
+        <a href="{{ route('find.blood') }}" class="btn btn-outline-light btn-lg rounded-pill px-5">Search Blood</a>
+    @endauth
+</div>
                 </div>
                 <div class="col-lg-5 d-none d-lg-block hero-img-wrapper" data-aos="zoom-in">
                     <img src="{{ asset('images/hero-illustration.png') }}" alt="Blood Donation Hero" class="img-fluid">

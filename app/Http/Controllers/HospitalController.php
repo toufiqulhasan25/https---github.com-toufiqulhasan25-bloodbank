@@ -36,29 +36,45 @@ class HospitalController extends Controller
         return back()->with('success', 'Blood stock updated successfully!');
     }
 
-  public function dashboard()
-{
-    $hospitalId = auth()->id();
+    public function dashboard(Request $request)
+    {
+        $hospitalId = auth()->id();
 
-    // নোটিফিকেশন লজিক (এটি ঠিক আছে)
-    $unreadNotifications = BloodRequest::where('hospital_id', $hospitalId)
-        ->whereIn('status', ['approved', 'rejected'])
-        ->where('is_read', 0)
-        ->get();
+        // ১. নোটিফিকেশন লজিক (AJAX রিকোয়েস্ট হলে শুধু JSON রেসপন্স দিবে)
+        if ($request->ajax()) {
+            BloodRequest::where('hospital_id', $hospitalId)
+                ->where('is_read', 0)
+                ->update(['is_read' => 1]);
+            return response()->json(['success' => true]);
+        }
 
-    if ($unreadNotifications->count() > 0) {
-        BloodRequest::where('hospital_id', $hospitalId)
+        // ২. অপঠিত নোটিফিকেশনগুলো গেট করা (ব্লেড ফাইলে দেখানোর জন্য)
+        $unreadNotifications = BloodRequest::where('hospital_id', $hospitalId)
+            ->whereIn('status', ['approved', 'rejected'])
             ->where('is_read', 0)
-            ->update(['is_read' => 1]);
+            ->get();
+
+        // ৩. ড্যাশবোর্ডের টেবিলের জন্য মাত্র ৫টি লেটেস্ট রিকোয়েস্ট
+        $requests = BloodRequest::where('hospital_id', $hospitalId)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // ৪. অ্যানালিটিক্স কার্ডের জন্য সব রিকোয়েস্টের কাউন্ট (ব্লেড ফাইলে ব্যবহারের জন্য)
+        $allRequestsCount = BloodRequest::where('hospital_id', $hospitalId)->count();
+        $pendingCount = BloodRequest::where('hospital_id', $hospitalId)->where('status', 'pending')->count();
+
+        // ৫. স্টক ডাটা
+        $stocks = BloodStock::where('user_id', $hospitalId)->get();
+
+        return view('hospital.dashboard', compact(
+            'requests',
+            'stocks',
+            'unreadNotifications',
+            'pendingCount',
+            'allRequestsCount'
+        ));
     }
-
-    $requests = BloodRequest::where('hospital_id', $hospitalId)->latest()->get();
-
-    // এই লাইনটি পরিবর্তন করুন: hospital_id এর বদলে user_id দিন
-    $stocks = BloodStock::where('user_id', $hospitalId)->get(); 
-
-    return view('hospital.dashboard', compact('requests', 'stocks', 'unreadNotifications'));
-}
     public function approveRequest($id)
     {
         $request = BloodRequest::find($id);
@@ -67,5 +83,33 @@ class HospitalController extends Controller
 
         // হসপিটালের জন্য সেশন মেসেজ সেট করা
         return back()->with('status_update', "Your request for {$request->blood_group} has been Approved!");
+    }
+
+    public function profileShow()
+    {
+        $user = auth()->user();
+        return view('hospital.profile', compact('user'));
+    }
+
+    public function profileUpdate(Request $request)
+    {
+        $user = auth()->user();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        $user->update($request->only(['name', 'phone', 'address']));
+        return back()->with('success', 'Hospital profile updated successfully!');
+    }
+
+    public function show($id)
+    {
+        // শুধু লগইন করা হাসপাতালের রিকোয়েস্টটি খুঁজে বের করবে
+        $bloodRequest = BloodRequest::where('hospital_id', auth()->id())->findOrFail($id);
+
+        // আমরা যে ব্লেড ফাইলটি তৈরি করেছিলাম সেটি রিটার্ন করবে
+        return view('hospital.request_details', compact('bloodRequest'));
     }
 }

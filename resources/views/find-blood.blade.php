@@ -49,11 +49,6 @@
         letter-spacing: 1px;
         transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .search-btn:hover { 
-        background: #a11825 !important; 
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(190, 30, 45, 0.3) !important;
-    }
     
     /* Result Items */
     .result-item {
@@ -89,41 +84,24 @@
         text-transform: uppercase;
     }
 
-    /* Donor/Hospital Profile Icon */
     .user-icon-box {
-        width: 32px;
-        height: 32px;
+        width: 32px; height: 32px;
         background: var(--soft-bg);
         border-radius: 8px;
         display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        align-items: center; justify-content: center;
         color: var(--deep-navy);
-        font-size: 0.9rem;
     }
 
-    .role-badge {
-        background: var(--soft-bg);
-        color: var(--deep-navy);
-        font-size: 0.65rem;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 50px;
-    }
-
-    /* Action Buttons */
     .btn-action {
         border-radius: 50px;
         padding: 10px 25px;
         font-weight: 700;
         transition: 0.3s;
     }
-
-    .empty-state {
-        background: white;
-        border-radius: 30px;
-        padding: 80px 20px;
-    }
+    
+    /* Empty State */
+    .empty-state { padding: 60px; border-radius: 30px; background: white; }
 </style>
 @endsection
 
@@ -131,15 +109,15 @@
 <section class="hero-search text-center">
     <div class="container">
         <h1 class="display-5 fw-bold mb-3" data-aos="fade-down">Find Life-Saving Blood</h1>
-        <p class="lead opacity-75 mb-0" data-aos="fade-up">Connecting everyone with Donors and Hospitals in real-time.</p>
+        <p class="lead opacity-75 mb-0" data-aos="fade-up">Connecting you with verified Donors and Hospitals.</p>
     </div>
 </section>
 
 <div class="container search-box-container mb-5">
-    <div class="search-card" data-aos="zoom-in" data-aos-delay="200">
-        <form action="{{ route('find.blood') }}" method="GET" class="row g-4 align-items-end">
+    <div class="search-card" data-aos="zoom-in">
+        <form action="{{ route('find.blood') }}" method="GET" id="searchForm" class="row g-4 align-items-end">
             <div class="col-lg-3 col-md-6">
-                <label class="form-label fw-bold small text-muted ms-2"><i class="fa-solid fa-droplet text-danger me-1"></i> Blood Group</label>
+                <label class="form-label fw-bold small text-muted ms-2">Blood Group</label>
                 <select name="blood_group" class="form-select bg-light custom-input">
                     <option value="">All Groups</option>
                     @foreach(['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as $group)
@@ -148,15 +126,15 @@
                 </select>
             </div>
             <div class="col-lg-4 col-md-6">
-                <label class="form-label fw-bold small text-muted ms-2"><i class="fa-solid fa-location-dot text-danger me-1"></i> Location</label>
-                <input type="text" name="location" class="form-control bg-light custom-input" placeholder="City or Area Name" value="{{ request('location') }}">
+                <label class="form-label fw-bold small text-muted ms-2">Location</label>
+                <input type="text" name="location" class="form-control bg-light custom-input" placeholder="Enter City or Area" value="{{ request('location') }}">
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="form-label fw-bold small text-muted ms-2"><i class="fa-solid fa-hospital text-danger me-1"></i> Search Scope</label>
+                <label class="form-label fw-bold small text-muted ms-2">Search Scope</label>
                 <select name="type" class="form-select bg-light custom-input">
-                    <option value="all">Any Source (All)</option>
-                    <option value="donor" {{ request('type') == 'donor' ? 'selected' : '' }}>Individual Donors</option>
-                    <option value="hospital" {{ request('type') == 'hospital' ? 'selected' : '' }}>Hospital Stocks</option>
+                    <option value="all">Any Source</option>
+                    <option value="donor" {{ request('type') == 'donor' ? 'selected' : '' }}>Donors Only</option>
+                    <option value="hospital" {{ request('type') == 'hospital' ? 'selected' : '' }}>Hospitals Only</option>
                 </select>
             </div>
             <div class="col-lg-2 col-md-6">
@@ -170,12 +148,9 @@
     <div class="mt-5 px-lg-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h4 class="fw-bold mb-0">Search Results</h4>
-                <small class="text-muted">Available blood sources matching your criteria</small>
+                <h4 class="fw-bold mb-0">Search Results ({{ $results->total() }})</h4>
+                <small class="text-muted">Verified results found in our database</small>
             </div>
-            <span class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm">
-                <span class="text-danger fw-bold">{{ $results->total() }}</span> matching results
-            </span>
         </div>
         
         @forelse($results as $item)
@@ -191,35 +166,33 @@
 
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                        <div class="user-icon-box" title="{{ ucfirst($item->role) }}">
-                            @if($item->role == 'hospital')
-                                <i class="fa-solid fa-hospital"></i>
-                            @else
-                                <i class="fa-solid fa-user-check"></i>
-                            @endif
+                        <div class="user-icon-box">
+                            <i class="fa-solid {{ $item->role == 'hospital' ? 'fa-hospital' : 'fa-user-check' }}"></i>
                         </div>
 
                         @if($item->role == 'donor')
-                            @if($item->last_donation_date)
-                                <span class="badge bg-success-subtle text-success border border-success status-badge rounded-pill">
-                                    <i class="fa-solid fa-clock-rotate-left me-1"></i> {{ \Carbon\Carbon::parse($item->last_donation_date)->diffForHumans() }}
-                                </span>
+                            @php
+                                $isAvailable = true;
+                                if($item->last_donation_date) {
+                                    $diff = \Carbon\Carbon::parse($item->last_donation_date)->diffInDays(now());
+                                    $isAvailable = $diff >= 90;
+                                }
+                            @endphp
+
+                            @if($isAvailable)
+                                <span class="badge bg-info-subtle text-info border border-info status-badge rounded-pill">Ready to Donate</span>
                             @else
-                                <span class="badge bg-info-subtle text-info border border-info status-badge rounded-pill">
-                                    <i class="fa-solid fa-heart-pulse me-1"></i> Ready to Donate
+                                <span class="badge bg-success-subtle text-success border border-success status-badge rounded-pill">
+                                    Eligible: {{ \Carbon\Carbon::parse($item->last_donation_date)->addDays(90)->format('d M') }}
                                 </span>
                             @endif
                         @else
-                            <span class="badge bg-warning-subtle text-dark border border-warning status-badge rounded-pill">
-                                <i class="fa-solid fa-house-medical me-1"></i> Hospital Facility
-                            </span>
+                            <span class="badge bg-warning-subtle text-dark border border-warning status-badge rounded-pill">Hospital Stock</span>
                         @endif
                     </div>
                     
                     <h5 class="fw-bold mb-1">{{ $item->name }}</h5>
-                    <p class="text-muted small mb-0">
-                        <i class="fa-solid fa-location-dot me-1 text-danger"></i> {{ $item->address ?? 'Location info not available' }}
-                    </p>
+                    <p class="text-muted small mb-0"><i class="fa-solid fa-location-dot me-1 text-danger"></i> {{ $item->address ?? 'Location info not available' }}</p>
                 </div>
             </div>
             
@@ -229,41 +202,54 @@
                         $stock = \App\Models\BloodStock::where('user_id', $item->id)
                                     ->where('blood_group', request('blood_group'))
                                     ->first();
+                        $bagsCount = $stock ? $stock->bags : 0;
                     @endphp
+                    
                     <div class="mb-3">
-                        <span class="h4 fw-bold text-danger mb-0">{{ $stock ? $stock->bags : '0' }}</span> 
-                        <span class="text-muted small">Bags in stock</span>
+                        @if($bagsCount > 0)
+                            <span class="h4 fw-bold text-danger mb-0">{{ $bagsCount }}</span> <span class="text-muted small">Bags available</span>
+                        @else
+                            <span class="badge bg-secondary text-white px-3 py-2 rounded-pill">Out of Stock</span>
+                        @endif
                     </div>
-                    <a href="/hospital/request/{{ $item->id }}" class="btn btn-outline-dark btn-action">
-                        <i class="fa-solid fa-paper-plane me-2"></i>Request Bags
-                    </a>
+
+                    @if($bagsCount > 0)
+                        <a href="/hospital/request/{{ $item->id }}" class="btn btn-outline-dark btn-action shadow-sm">
+                            <i class="fa-solid fa-paper-plane me-2"></i>Request Blood
+                        </a>
+                    @else
+                        <button class="btn btn-light btn-action border" disabled><i class="fa-solid fa-ban me-2"></i> Unavailable</button>
+                    @endif
                 @else
+                    {{-- Donor Action --}}
                     <div class="mb-3">
-                        <span class="text-success fw-bold small">
-                            <i class="fa-solid fa-circle-check me-1"></i> Verified Donor
-                        </span>
+                        <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Verified Donor</span>
                     </div>
-                    <a href="tel:{{ $item->phone }}" class="btn btn-dark btn-action shadow-sm">
-                        <i class="fa-solid fa-phone me-2"></i>Contact Now
-                    </a>
+
+                    @auth
+                        {{-- Triggering notification logic via a separate route --}}
+                        <a href="{{ route('donor.notify', ['id' => $item->id, 'group' => request('blood_group')]) }}" class="btn btn-dark btn-action shadow-sm">
+                            <i class="fa-solid fa-phone me-2"></i>Call Now
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="btn btn-outline-danger btn-action shadow-sm">
+                            <i class="fa-solid fa-lock me-2"></i> Login to Call
+                        </a>
+                    @endauth
                 @endif
             </div>
         </div>
         @empty
-        <div class="empty-state text-center shadow-sm border" data-aos="zoom-in">
-            <div class="mb-4">
-                <i class="fa-solid fa-droplet-slash display-1 text-muted opacity-25"></i>
-            </div>
-            <h3 class="fw-bold text-muted">No Matching Donors Found</h3>
-            <p class="text-secondary mx-auto mb-4" style="max-width: 500px;">
-                We couldn't find any donors matching your criteria at this moment. Donors who have donated in the last 90 days are hidden for safety.
-            </p>
-            <a href="{{ route('find.blood') }}" class="btn btn-danger px-5">Clear All Filters</a>
+        <div class="empty-state text-center shadow-sm border mt-4">
+            <i class="fa-solid fa-droplet-slash display-1 text-muted opacity-25 mb-4"></i>
+            <h3 class="fw-bold text-muted">No Match Found</h3>
+            <p class="text-secondary mb-4">We couldn't find any donors or hospital stock for "{{ request('blood_group') }}" in this area.</p>
+            <a href="{{ route('find.blood') }}" class="btn btn-danger px-5 rounded-pill">Clear All Filters</a>
         </div>
         @endforelse
 
         <div class="mt-5 d-flex justify-content-center">
-            {{ $results->appends(request()->input())->links() }}
+            {{ $results->appends(request()->input())->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>
@@ -273,5 +259,11 @@
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script>
     AOS.init({ duration: 800, once: true });
+
+    document.getElementById('searchForm').addEventListener('submit', function() {
+        let btn = this.querySelector('.search-btn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> SEARCHING...';
+        btn.disabled = true;
+    });
 </script>
 @endsection

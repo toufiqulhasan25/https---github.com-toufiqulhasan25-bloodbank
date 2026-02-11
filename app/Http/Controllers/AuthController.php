@@ -15,30 +15,33 @@ class AuthController extends Controller
     }
 
     public function register(Request $req)
-{
-    $data = $req->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|max:255|unique:users,email',
-        'password' => 'required|string|min:6|confirmed',
-        'role' => 'required|in:donor,hospital',
-        // 'nullable' যোগ করা হয়েছে যেন হসপিটালের ক্ষেত্রে ব্লাড গ্রুপ না দিলেও এরর না দেয়
-        'blood_group' => $req->role == 'donor' ? 'required|string' : 'nullable|string',
-        'phone' => 'required|string|max:15',
-        'address' => 'required|string', // নিশ্চিত করুন এটি রিকোয়ার্ড
-    ]);
+    {
+        $data = $req->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+            'role' => 'required|in:donor,hospital',
+            'blood_group' => $req->role == 'donor' ? 'required|string' : 'nullable|string',
+            'phone' => 'required|string|max:15',
+            'address' => 'required|string',
+            'dob' => 'nullable|date', // নতুন
+            'last_donation_date' => 'nullable|date', // নতুন
+        ]);
 
-    User::create([
-        'name' => $data['name'],
-        'email' => $data['email'],
-        'password' => Hash::make($data['password']),
-        'address'       => $data['address'], // এটি অবশ্যই দিন
-        'role' => $data['role'],
-        'blood_group' => $data['blood_group'] ?? null, // ব্লাড গ্রুপ না থাকলে null সেভ হবে
-        'phone' => $data['phone'],
-    ]);
+        User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'address' => $data['address'],
+            'role' => $data['role'],
+            'blood_group' => $data['blood_group'] ?? null,
+            'phone' => $data['phone'],
+            'dob' => $data['dob'] ?? null, // নতুন
+            'last_donation_date' => $data['last_donation_date'] ?? null, // নতুন
+        ]);
 
-    return redirect('/login')->with('success', 'Registration successful. Please login.');
-}
+        return redirect('/login')->with('success', 'Registration successful. Please login.');
+    }
 
     public function loginForm()
     {

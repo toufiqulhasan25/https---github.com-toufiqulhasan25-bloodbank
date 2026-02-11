@@ -81,10 +81,13 @@
             .sidebar {
                 left: -250px;
             }
+
             .sidebar.active {
                 left: 0;
             }
-            .top-nav, .main-wrapper {
+
+            .top-nav,
+            .main-wrapper {
                 margin-left: 0;
             }
         }
@@ -108,7 +111,8 @@
         <div class="text-center py-4">
             {{-- লোগোতে হোম লিঙ্ক যোগ করা হয়েছে --}}
             <a href="/">
-                <img src="{{ asset('images/logo.png') }}" style="height: 40px; filter: brightness(0) invert(1);" alt="Logo">
+                <img src="{{ asset('images/logo.png') }}" style="height: 40px; filter: brightness(0) invert(1);"
+                    alt="Logo">
             </a>
         </div>
 
@@ -149,7 +153,8 @@
                 <a href="/manager/requests" class="nav-link {{ request()->is('manager/requests*') ? 'active' : '' }}">
                     <i class="fa-solid fa-list-check"></i> Manage Orders
                 </a>
-                <a href="/manager/appointments" class="nav-link {{ request()->is('manager/appointments*') ? 'active' : '' }}">
+                <a href="/manager/appointments"
+                    class="nav-link {{ request()->is('manager/appointments*') ? 'active' : '' }}">
                     <i class="fa-solid fa-calendar-days"></i> Appointments
                 </a>
             @endif
@@ -166,7 +171,8 @@
         </div>
 
         <div class="dropdown">
-            <button class="btn btn-white dropdown-toggle d-flex align-items-center gap-2 border shadow-sm" type="button" data-bs-toggle="dropdown">
+            <button class="btn btn-white dropdown-toggle d-flex align-items-center gap-2 border shadow-sm" type="button"
+                data-bs-toggle="dropdown">
                 <div class="text-end d-none d-sm-block">
                     <p class="mb-0 fw-bold" style="font-size: 0.85rem; line-height: 1.2;">{{ auth()->user()->name }}</p>
                     <span class="role-badge">{{ ucfirst(auth()->user()->role) }}</span>
@@ -174,12 +180,17 @@
                 <i class="fa-solid fa-circle-user fs-3 text-secondary"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                <li><a class="dropdown-item py-2" href="/profile"><i class="fa-solid fa-user me-2"></i> Profile</a></li>
-                <li><hr class="dropdown-divider"></li>
+                <a href="{{ route(auth()->user()->role . '.profile.show') }}" class="dropdown-item">
+                    <i class="fa-solid fa-user me-2"></i> Profile
+                </a>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
                 <li>
                     <form method="POST" action="/logout">
                         @csrf
-                        <button class="dropdown-item py-2 text-danger"><i class="fa-solid fa-sign-out me-2"></i> Logout</button>
+                        <button class="dropdown-item py-2 text-danger"><i class="fa-solid fa-sign-out me-2"></i>
+                            Logout</button>
                     </form>
                 </li>
             </ul>
@@ -191,15 +202,15 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
         // মোবাইল টগল স্ক্রিপ্ট
-        document.getElementById('mobile-toggle')?.addEventListener('click', function() {
+        document.getElementById('mobile-toggle')?.addEventListener('click', function () {
             document.getElementById('sidebar').classList.toggle('active');
         });
 
         // সাইডবারের বাইরে ক্লিক করলে মোবাইল ভিউতে বন্ধ হবে
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('mobile-toggle');
             if (window.innerWidth <= 768 && !sidebar.contains(event.target) && !toggle.contains(event.target)) {
@@ -209,4 +220,5 @@
     </script>
     @yield('extra_js')
 </body>
+
 </html>
