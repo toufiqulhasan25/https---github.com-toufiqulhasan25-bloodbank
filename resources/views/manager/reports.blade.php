@@ -99,6 +99,44 @@
     </div>
 </div>
 
+{{-- Recipient Analysis --}}
+<div class="card shadow-sm border-0 rounded-4 mt-4">
+    <div class="card-header bg-white fw-bold py-3">
+        <i class="fa-solid fa-truck-ramp-box me-2 text-success"></i>Hospital Distribution Analysis
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light small text-uppercase">
+                <tr>
+                    <th class="ps-4">Hospital Name</th>
+                    <th>Total Units Received</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($request_stats as $stat)
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm bg-light rounded-circle p-2 me-2">
+                                <i class="fa-solid fa-hospital-user text-primary"></i>
+                            </div>
+                            <span class="fw-bold">{{ $stat->hospital_name }}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-primary-subtle text-primary px-3">{{ $stat->total }} Units</span></td>
+                    <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Fulfilled</span></td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" class="text-center py-4 text-muted">No distribution data found.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <style>
     .bg-danger-subtle { background-color: #f8d7da !important; }
     .card { transition: transform 0.2s; }

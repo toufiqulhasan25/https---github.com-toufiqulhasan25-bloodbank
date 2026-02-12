@@ -3,33 +3,34 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Models\Inventory; // ইনভেন্টরি মডেল যোগ করুন
+use App\Models\Inventory;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AppointmentController extends Controller
 {
+    // ১. ডোনারের জন্য বুকিং পেজ ভিউ
     public function create()
     {
-        // হসপিটালের লিস্ট পাঠানো যাতে ডোনার হসপিটাল সিলেক্ট করতে পারে
-        $hospitals = \App\Models\User::where('role', 'hospital')->get();
+        $hospitals = User::where('role', 'hospital')->get();
         return view('donor.appointment', compact('hospitals'));
     }
 
+    // ২. অ্যাপয়েন্টমেন্ট সেভ করা (নোটসহ)
     public function store(Request $r)
     {
-        // ১. ভ্যালিডেশন
         $r->validate([
             'hospital_id' => 'required|exists:users,id',
             'donor_name' => 'required|string|max:255',
             'blood_group' => 'required|string|max:10',
             'date' => 'required|date|after_or_equal:today',
             'time' => 'required',
+            'note' => 'nullable|string|max:500',
         ]);
 
-        // ২. এলিজিবিলিটি চেক (রিকয়ারমেন্ট: Medical history check)
-        // আমরা দেখব গত ৯০ দিনের মধ্যে এই ইউজারের কোনো 'approved' অ্যাপয়েন্টমেন্ট আছে কি না
+        // এলিজিবিলিটি চেক
         $lastDonation = Appointment::where('user_id', Auth::id())
             ->where('status', 'approved')
             ->where('date', '>', Carbon::now()->subDays(90))
@@ -38,10 +39,9 @@ class AppointmentController extends Controller
 
         if ($lastDonation) {
             $nextEligibleDate = Carbon::parse($lastDonation->date)->addDays(90)->format('d M, Y');
-            return redirect()->back()->with('error', "Eligibility Error: You must wait 90 days between donations. Your next eligible date is {$nextEligibleDate}.");
+            return redirect()->back()->with('error', "Eligibility Error: Next eligible date is {$nextEligibleDate}.");
         }
 
-        // ৩. অ্যাপয়েন্টমেন্ট ক্রিয়েট করা
         Appointment::create([
             'user_id' => Auth::id(),
             'hospital_id' => $r->hospital_id,
@@ -49,21 +49,26 @@ class AppointmentController extends Controller
             'blood_group' => $r->blood_group,
             'date' => $r->date,
             'time' => $r->time,
+            'note' => $r->note,
             'status' => 'pending'
         ]);
 
-        return redirect('/donor/dashboard')->with('success', 'Appointment booked successfully!');
+        return redirect()->route('donor.dashboard')->with('success', 'Appointment booked successfully!');
     }
 
+    // ৩. হসপিটাল/ম্যানেজারের জন্য অ্যাপয়েন্টমেন্ট লিস্ট দেখা
     public function manage()
     {
-        // 'hospital_id' এর বদলে 'hospital' হবে (যেটি মডেলে ডিফাইন করা হয়েছে)
-        $apps = Appointment::with(['user', 'hospital'])->latest()->get();
+        // লজিক: শুধুমাত্র লগইন করা হসপিটালের অ্যাপয়েন্টমেন্টগুলো দেখাবে
+        $apps = Appointment::with(['user', 'hospital'])
+            ->where('hospital_id', Auth::id()) 
+            ->latest()
+            ->get();
 
-        // আপনার ব্লেড ফাইলে যদি ভেরিয়েবল নাম $apps হয়, তবে compact এ 'apps' দিন
         return view('manager.appointments', compact('apps'));
     }
 
+    // ৪. অ্যাপয়েন্টমেন্ট অ্যাপ্রুভ এবং ইনভেন্টরি আপডেট
     public function approve($id)
     {
         $app = Appointment::findOrFail($id);
@@ -74,19 +79,29 @@ class AppointmentController extends Controller
 
         $app->update(['status' => 'approved']);
 
-        // ইনভেন্টরি আপডেট (মডেলের 'units' কলাম ব্যবহার করে)
-        $stock = Inventory::where('blood_group', $app->blood_group)->first();
+        // ইনভেন্টরি আপডেট
+        $stock = Inventory::where('blood_group', $app->blood_group)
+                          ->where('hospital_id', Auth::id()) // বর্তমান হসপিটালের স্টক
+                          ->first();
 
         if ($stock) {
-            $stock->increment('units'); // ১ ব্যাগ বাড়াবে
+            $stock->increment('units');
         } else {
             Inventory::create([
+                'hospital_id' => Auth::id(),
                 'blood_group' => $app->blood_group,
                 'units' => 1,
-                'expiry_date' => now()->addDays(42), // সাধারণত রক্ত ৪২ দিন থাকে
+                'expiry_date' => now()->addDays(42), 
             ]);
         }
 
         return back()->with('success', 'Appointment approved and inventory updated!');
+    }
+
+    // ৫. ডোনারের জন্য সিঙ্গেল অ্যাপয়েন্টমেন্ট ডিটেইলস
+    public function show($id)
+    {
+        $appointment = Appointment::with('hospital')->where('user_id', Auth::id())->findOrFail($id);
+        return view('donor.appointment_details', compact('appointment'));
     }
 }

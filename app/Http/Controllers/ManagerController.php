@@ -114,15 +114,18 @@ class ManagerController extends Controller
 
         // ৪. হসপিটাল রিকোয়েস্ট স্ট্যাটাস (Recipient analysis)
         // কতগুলো রিকোয়েস্ট পেন্ডিং বা কমপ্লিট হয়েছে
-        $request_stats = BloodRequest::select('status', \DB::raw('count(*) as total'))
-            ->groupBy('status')
+
+        $request_stats = BloodRequest::where('blood_requests.status', 'approved')
+            ->join('users', 'blood_requests.hospital_id', '=', 'users.id')
+            ->select('users.name as hospital_name', \DB::raw('SUM(blood_requests.bags_needed) as total'))
+            ->groupBy('users.id', 'users.name')
             ->get();
 
         return view('manager.reports', compact(
             'total_donations',
             'group_reports',
             'inventory_report',
-            'request_stats'
+            'request_stats' // এই ডেটা এখন ব্লেডে যাবে
         ));
     }
 
