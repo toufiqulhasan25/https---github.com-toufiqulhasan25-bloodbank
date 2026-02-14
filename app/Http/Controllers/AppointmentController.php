@@ -57,13 +57,11 @@ class AppointmentController extends Controller
     }
 
     // ৩. হসপিটাল/ম্যানেজারের জন্য অ্যাপয়েন্টমেন্ট লিস্ট দেখা
+    // AppointmentController.php বা ManagerController.php এ আপডেট করুন
     public function manage()
     {
-        // লজিক: শুধুমাত্র লগইন করা হসপিটালের অ্যাপয়েন্টমেন্টগুলো দেখাবে
-        $apps = Appointment::with(['user', 'hospital'])
-            ->where('hospital_id', Auth::id()) 
-            ->latest()
-            ->get();
+        // আপনি যদি চান ম্যানেজার হিসেবে সব রিকোয়েস্ট দেখবেন
+        $apps = Appointment::with(['user', 'hospital'])->latest()->get();
 
         return view('manager.appointments', compact('apps'));
     }
@@ -81,8 +79,8 @@ class AppointmentController extends Controller
 
         // ইনভেন্টরি আপডেট
         $stock = Inventory::where('blood_group', $app->blood_group)
-                          ->where('hospital_id', Auth::id()) // বর্তমান হসপিটালের স্টক
-                          ->first();
+            ->where('hospital_id', Auth::id()) // বর্তমান হসপিটালের স্টক
+            ->first();
 
         if ($stock) {
             $stock->increment('units');
@@ -91,7 +89,7 @@ class AppointmentController extends Controller
                 'hospital_id' => Auth::id(),
                 'blood_group' => $app->blood_group,
                 'units' => 1,
-                'expiry_date' => now()->addDays(42), 
+                'expiry_date' => now()->addDays(42),
             ]);
         }
 

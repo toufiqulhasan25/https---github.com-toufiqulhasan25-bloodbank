@@ -7,83 +7,117 @@ use App\Models\Appointment;
 use App\Models\BloodRequest;
 use App\Models\Inventory;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class ManagerController extends Controller
 {
     // ১. ম্যানেজার ড্যাশবোর্ড ওভারভিউ
     public function index()
     {
-        $data = [
-            'total_units' => Inventory::sum('units'), // মোট কত ব্যাগ রক্ত আছে
-            'pending_requests' => BloodRequest::where('status', 'pending')->count(),
-            'pending_appts' => Appointment::where('status', 'pending')->count(),
-            'recent_donors' => Appointment::where('status', 'approved')->latest()->take(5)->get(),
-            'inventory' => Inventory::all()
-        ];
+        // মোট ব্লাড স্টক (units কলাম ব্যবহার করে)
+        $total_units = Inventory::sum('units');
 
-        return view('manager.dashboard', $data);
+        // পেন্ডিং অ্যাপয়েন্টমেন্ট
+        $pending_appts = Appointment::where('status', 'pending')->count();
+
+        // হসপিটাল থেকে আসা পেন্ডিং রিকোয়েস্ট
+        $pending_requests = BloodRequest::where('status', 'pending')->count();
+
+        // ব্লাড গ্রুপ অনুযায়ী ইনভেন্টরি অ্যানালাইসিস
+        $inventory = Inventory::select('blood_group', DB::raw('SUM(units) as units'))
+            ->groupBy('blood_group')
+            ->get();
+
+        return view('manager.dashboard', compact(
+            'total_units',
+            'pending_appts',
+            'pending_requests',
+            'inventory'
+        ));
     }
 
     // ২. ইনভেন্টরি বা রক্তের স্টক দেখা
     public function inventory()
     {
-        // ১. বর্তমানে স্টকে থাকা মোট এভেলেবল ব্লাড (গ্রুপ অনুযায়ী সাজানো)
-        $stockSummary = Inventory::select('blood_group', \DB::raw('SUM(units) as total_units'))
+        $stockSummary = Inventory::select('blood_group', DB::raw('SUM(units) as total_units'))
             ->groupBy('blood_group')
             ->get();
 
-        // ২. সকল ইনভেন্টরি ডাটা (টেবিলে দেখানোর জন্য)
         $data = Inventory::latest()->get();
 
         return view('manager.inventory', compact('data', 'stockSummary'));
     }
 
-    // ৩. ডোনারের অ্যাপয়েন্টমেন্ট অ্যাপ্রুভ করা (স্টক বাড়বে)
+    // ৩. অ্যাপয়েন্টমেন্ট অ্যাপ্রুভ করা (স্টক বাড়বে)
     public function approveAppointment($id)
     {
         $appointment = Appointment::findOrFail($id);
 
+        if ($appointment->status !== 'pending') {
+            return back()->with('error', 'This appointment has already been processed.');
+        }
+
         // স্ট্যাটাস আপডেট
         $appointment->update(['status' => 'approved']);
 
-        // ইনভেন্টরিতে রক্ত যোগ করা
-        $inventory = Inventory::where('blood_group', $appointment->blood_group)->first();
+        // ইনভেন্টরিতে রক্ত যোগ করা (এখানে hospital_id সহ চেক করা ভালো)
+        $inventory = Inventory::where('blood_group', $appointment->blood_group)
+                              ->where('hospital_id', $appointment->hospital_id)
+                              ->first();
 
         if ($inventory) {
-            $inventory->increment('stock_count');
+            // আপনার ডাটাবেসে কলাম নাম 'units' হলে 'units' আপডেট করুন
+            $inventory->increment('units'); 
         } else {
             Inventory::create([
+                'hospital_id' => $appointment->hospital_id,
                 'blood_group' => $appointment->blood_group,
-                'stock_count' => 1
+                'units' => 1,
+                'expiry_date' => now()->addDays(42),
             ]);
         }
 
-        return back()->with('success', 'Stock updated!');
+        return back()->with('success', 'Appointment approved and inventory updated!');
     }
 
-    // ৪. হসপিটাল ব্লাড রিকোয়েস্ট অ্যাপ্রুভ করা (স্টক কমবে)
+    // ৪. হসপিটাল ব্লাড রিকোয়েস্ট অ্যাপ্রুভ করা (স্টক কমবে)
     public function approveRequest($id)
     {
         $bloodRequest = BloodRequest::findOrFail($id);
+        $requestedAmount = (int) ($bloodRequest->bags_needed ?? $bloodRequest->units ?? 0);
 
-        // স্টক চেক করা
-        $stock = Inventory::where('blood_group', $bloodRequest->blood_group)->first();
+        // স্টক চেক
+        $totalAvailable = Inventory::where('blood_group', $bloodRequest->blood_group)->sum('units');
 
-        if (!$stock || $stock->stock_count < $bloodRequest->units) {
-            return back()->with('error', 'Not enough blood in stock to fulfill this request.');
+        if ($totalAvailable < $requestedAmount) {
+            return back()->with('error', 'Insufficient stock for ' . $bloodRequest->blood_group);
         }
 
-        // রিকোয়েস্ট অ্যাপ্রুভ করা
+        // FIFO (First In First Out) পদ্ধতিতে স্টক কমানো
+        $remainingToDeduct = $requestedAmount;
+        $stocks = Inventory::where('blood_group', $bloodRequest->blood_group)
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+        foreach ($stocks as $stock) {
+            if ($remainingToDeduct <= 0) break;
+
+            if ($stock->units <= $remainingToDeduct) {
+                $remainingToDeduct -= $stock->units;
+                $stock->delete();
+            } else {
+                $stock->decrement('units', $remainingToDeduct);
+                $remainingToDeduct = 0;
+            }
+        }
+
         $bloodRequest->status = 'approved';
         $bloodRequest->save();
 
-        // ইনভেন্টরি থেকে রক্ত কমিয়ে দেওয়া
-        $stock->decrement('stock_count', $bloodRequest->units);
-
-        return back()->with('success', 'Hospital request approved and stock updated!');
+        return back()->with('success', 'Hospital request approved! Stock updated.');
     }
 
-    // ৫. রিকোয়েস্ট বা অ্যাপয়েন্টমেন্ট রিজেক্ট করা
+    // ৫. রিকোয়েস্ট রিজেক্ট করা
     public function rejectRequest($id)
     {
         $bloodRequest = BloodRequest::findOrFail($id);
@@ -93,31 +127,26 @@ class ManagerController extends Controller
         return back()->with('info', 'Request has been rejected.');
     }
 
+    // ৬. অ্যানালিটিক্স রিপোর্ট (যা আপনার চার্ট আপডেট করবে)
     public function reports()
     {
-        // ১. মোট রক্তদানের সংখ্যা (Donation statistics)
-        // এখানে জয়েন করার প্রয়োজন নেই যদি সবাই সাধারণ ইউজার হয়
         $total_donations = Appointment::where('status', 'approved')->count();
 
-        // ২. কোন গ্রুপের রক্ত কতবার দেওয়া হয়েছে (Blood Group Distribution)
-        // এটি ম্যানেজারের জন্য সবচেয়ে গুরুত্বপূর্ণ রিপোর্ট
+        // চার্টের জন্য ডেটা (Donation Frequency)
         $group_reports = Appointment::where('status', 'approved')
-            ->select('blood_group', \DB::raw('count(*) as total'))
+            ->select('blood_group', DB::raw('count(*) as total'))
             ->groupBy('blood_group')
             ->get();
 
-        // ৩. বর্তমান ইনভেন্টরি স্টক (Real-time tracking)
-        // ইনভেন্টরিতে কোন গ্রুপের কত ইউনিট আছে
-        $inventory_report = Inventory::select('blood_group', \DB::raw('SUM(units) as total_units'))
+        // বর্তমান ইনভেন্টরি চার্টের জন্য
+        $inventory_report = Inventory::select('blood_group', DB::raw('SUM(units) as total_units'))
             ->groupBy('blood_group')
             ->get();
 
-        // ৪. হসপিটাল রিকোয়েস্ট স্ট্যাটাস (Recipient analysis)
-        // কতগুলো রিকোয়েস্ট পেন্ডিং বা কমপ্লিট হয়েছে
-
+        // হসপিটাল ডিস্ট্রিবিউশন অ্যানালাইসিস
         $request_stats = BloodRequest::where('blood_requests.status', 'approved')
             ->join('users', 'blood_requests.hospital_id', '=', 'users.id')
-            ->select('users.name as hospital_name', \DB::raw('SUM(blood_requests.bags_needed) as total'))
+            ->select('users.name as hospital_name', DB::raw('SUM(blood_requests.bags_needed) as total'))
             ->groupBy('users.id', 'users.name')
             ->get();
 
@@ -125,10 +154,9 @@ class ManagerController extends Controller
             'total_donations',
             'group_reports',
             'inventory_report',
-            'request_stats' // এই ডেটা এখন ব্লেডে যাবে
+            'request_stats'
         ));
     }
-
 
     public function profileShow()
     {
@@ -145,8 +173,13 @@ class ManagerController extends Controller
         ]);
 
         $user->update($request->only(['name', 'phone']));
-        return back()->with('success', 'Manager profile updated successfully!');
+        return back()->with('success', 'Profile updated successfully!');
     }
 
-
+    public function destroyInventory($id)
+    {
+        $item = Inventory::findOrFail($id);
+        $item->delete();
+        return back()->with('success', 'Blood record removed successfully.');
+    }
 }

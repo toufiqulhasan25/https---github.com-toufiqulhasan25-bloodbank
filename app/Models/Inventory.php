@@ -10,8 +10,9 @@ class Inventory extends Model
     use HasFactory;
 
     protected $fillable = [
+        'hospital_id', // এটি যোগ করুন
         'blood_group',
-        'units', // আমরা কন্ট্রোলারেও এই নাম ব্যবহার করব
+        'units',
         'expiry_date'
     ];
 

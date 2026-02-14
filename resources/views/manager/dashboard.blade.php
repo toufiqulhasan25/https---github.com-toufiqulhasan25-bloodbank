@@ -20,7 +20,7 @@
     </div>
 
     {{-- Quick Action Cards (Icons) --}}
-    <div class="row g-3 mb-4">
+    <div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
         @php
             $navs = [
                 ['url' => '/manager/inventory', 'icon' => 'fa-warehouse', 'label' => 'Inventory', 'color' => '#BE1E2D'],

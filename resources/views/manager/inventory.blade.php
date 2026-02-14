@@ -100,38 +100,60 @@
                                 $isExpired = $expiryDate->isPast();
                                 $isExpiringSoon = !$isExpired && $expiryDate->diffInDays(now()) <= 7;
                             @endphp
-                            <tr class="{{ $isExpired ? 'table-danger' : '' }}">
+                            <tr class="{{ $isExpired ? 'table-danger' : '' }} transition-all">
                                 <td class="ps-4 fw-bold">
-                                    <span class="avatar-sm bg-danger text-white rounded-circle d-inline-block text-center me-2" style="width: 30px; height: 30px; line-height: 30px; font-size: 0.8rem;">
+                                    <span class="avatar-sm bg-danger text-white rounded-circle d-inline-block text-center me-2 shadow-sm" style="width: 32px; height: 32px; line-height: 32px; font-size: 0.85rem;">
                                         {{ $row->blood_group }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="fw-bold">{{ $row->units }} Bags</span>
+                                    <div class="fw-bold text-dark">{{ $row->units }} Bags</div>
+                                    <small class="text-muted extra-small">ID: #INV-{{ str_pad($row->id, 4, '0', STR_PAD_LEFT) }}</small>
                                 </td>
                                 <td class="text-muted small">
-                                    {{ $row->created_at->format('d M, Y') }}
+                                    <i class="fa-regular fa-calendar-check me-1"></i> {{ $row->created_at->format('d M, Y') }}
                                 </td>
                                 <td>
-                                    <span class="{{ $isExpired ? 'text-danger fw-bold' : ($isExpiringSoon ? 'text-warning fw-bold' : '') }}">
-                                        {{ $expiryDate->format('d M, Y') }}
+                                    <span class="{{ $isExpired ? 'text-danger fw-bold' : ($isExpiringSoon ? 'text-warning fw-bold' : 'text-dark') }}">
+                                        <i class="fa-regular fa-clock me-1"></i> {{ $expiryDate->format('d M, Y') }}
                                     </span>
                                 </td>
                                 <td>
                                     @if($isExpired)
-                                        <span class="badge bg-danger rounded-pill"><i class="fa-solid fa-circle-xmark me-1"></i> Expired</span>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Expired
+                                        </span>
                                     @elseif($isExpiringSoon)
-                                        <span class="badge bg-warning text-dark rounded-pill"><i class="fa-solid fa-clock me-1"></i> Expiring Soon</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-3">
+                                            <i class="fa-solid fa-hourglass-half me-1"></i> Expiring Soon
+                                        </span>
                                     @else
-                                        <span class="badge bg-success rounded-pill"><i class="fa-solid fa-check-circle me-1"></i> Healthy</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">
+                                            <i class="fa-solid fa-check-circle me-1"></i> Healthy
+                                        </span>
                                     @endif
+                                </td>
+                                {{-- Action Column --}}
+                                <td class="text-end pe-4">
+                                    <form action="{{ route('manager.inventory.destroy', $row->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" 
+                                                onclick="return confirm('Are you sure you want to discard this stock?')" 
+                                                data-bs-toggle="tooltip" title="Discard Stock">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
-                                    <i class="fa-solid fa-box-open d-block mb-2 fs-2"></i>
-                                    No stock data available.
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <div class="py-3">
+                                        <i class="fa-solid fa-box-open d-block mb-3 opacity-25" style="font-size: 3.5rem;"></i>
+                                        <h6 class="fw-bold">No stock data available</h6>
+                                        <p class="small">New entries will appear here once added.</p>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse

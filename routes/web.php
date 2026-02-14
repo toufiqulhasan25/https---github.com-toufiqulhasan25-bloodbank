@@ -94,6 +94,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [ManagerController::class, 'index'])->name('manager.dashboard');
         Route::get('/profile', [ManagerController::class, 'profileShow'])->name('manager.profile.show');
         Route::post('/profile-update', [ManagerController::class, 'profileUpdate'])->name('manager.profile.update');
+        // অন্য ইনভেন্টরি রাউটগুলোর সাথে এটি যোগ করুন
+        Route::delete('/manager/inventory/{id}', [ManagerController::class, 'destroyInventory'])->name('manager.inventory.destroy');
 
         // ২. ইনভেন্টরি ম্যানেজমেন্ট
         Route::get('/inventory', [ManagerController::class, 'inventory'])->name('manager.inventory');
