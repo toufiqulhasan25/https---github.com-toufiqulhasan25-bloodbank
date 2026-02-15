@@ -168,20 +168,23 @@ class DonorController extends Controller
     {
         $user = User::find(Auth::id());
 
+        // ভ্যালিডেশন: এখানে field গুলো 'nullable' রাখা হয়েছে যাতে মডাল থেকে আপডেট করলে সমস্যা না হয়
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'last_donation_date' => 'nullable|date|before_or_equal:today',
             'address' => 'nullable|string|max:500',
         ]);
 
-        // সব ডাটা একসাথে আপডেট হবে
-        $user->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'last_donation_date' => $request->last_donation_date,
-            'address' => $request->address,
-        ]);
+        // শুধুমাত্র যে ডাটাগুলো রিকোয়েস্টে পাঠানো হয়েছে সেগুলো ফিল্টার করে আপডেট করা
+        $data = array_filter($request->only(['name', 'phone', 'last_donation_date', 'address']));
+
+        // যদি last_donation_date রিকোয়েস্টে থাকে কিন্তু খালি থাকে, তবে সেটিও আপডেট হওয়া উচিত
+        if ($request->has('last_donation_date')) {
+            $data['last_donation_date'] = $request->last_donation_date;
+        }
+
+        $user->update($data);
 
         return back()->with('success', 'Profile updated successfully!');
     }

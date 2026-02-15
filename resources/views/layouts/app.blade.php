@@ -161,6 +161,11 @@
                     class="nav-link {{ request()->is('manager/appointments*') ? 'active' : '' }}">
                     <i class="fa-solid fa-calendar-days"></i> Appointments
                 </a>
+
+                <a href="{{ route('admin.messages') }}"
+                    class="nav-link {{ request()->is('admin/messages*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-envelope"></i> Contact Messages
+                </a>
             @endif
         </nav>
     </aside>

@@ -10,6 +10,7 @@ use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\DonorController;
 use App\Http\Controllers\DonorSearchController;
 use App\Http\Controllers\Donor\DashboardController;
+use App\Http\Controllers\ContactController;
 
 /* =========================================================
     ১. পাবলিক রাউট
@@ -24,6 +25,11 @@ Route::get('/donate-info', function () {
 Route::get('/hospitals-info', function () {
     return view('hospitals-info');
 });
+
+Route::get('/contact', function () {
+    return view('contact'); // এখানে 'frontend.contact' এর বদলে শুধু 'contact' হবে
+})->name('contact');
+Route::post('/contact/send', [ContactController::class, 'store'])->name('contact.send');
 
 /* =========================================================
     ২. গেস্ট রাউট
@@ -108,6 +114,8 @@ Route::middleware(['auth'])->group(function () {
     /* --- ম্যানেজার রাউট (Manager) --- */
     /* --- ম্যানেজার রাউট (Manager) --- */
     Route::middleware('role:manager')->prefix('manager')->group(function () {
+
+        Route::get('/admin/messages', [ContactController::class, 'index'])->name('admin.messages');
         // ১. ড্যাশবোর্ড ও প্রোফাইল
         Route::get('/dashboard', [ManagerController::class, 'index'])->name('manager.dashboard');
         Route::get('/profile', [ManagerController::class, 'profileShow'])->name('manager.profile.show');

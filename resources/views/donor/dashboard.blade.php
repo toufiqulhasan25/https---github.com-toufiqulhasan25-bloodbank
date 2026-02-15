@@ -3,6 +3,16 @@
 @section('title', 'Donor Dashboard')
 
 @section('content')
+
+    @if ($errors->any())
+        <div class="alert alert-danger rounded-4 border-0 shadow-sm">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <div class="container-fluid">
         {{-- Eligibility Summary Alert --}}
         <div class="row mb-4">
@@ -184,7 +194,7 @@
                                             <td>
                                                 <span
                                                     class="badge rounded-pill px-3 py-2 
-                                                                            {{ $app->status == 'approved' ? 'bg-success-subtle text-success' : ($app->status == 'pending' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger') }}">
+                                                                                            {{ $app->status == 'approved' ? 'bg-success-subtle text-success' : ($app->status == 'pending' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger') }}">
                                                     {{ ucfirst($app->status) }}
                                                 </span>
                                             </td>
@@ -308,6 +318,8 @@
                 </div>
                 <form action="{{ route('donor.profile.update') }}" method="POST">
                     @csrf
+                    {{-- নাম যেন ভ্যালিডেশনে মিস না হয় সেজন্য হিডেন ফিল্ড --}}
+                    <input type="hidden" name="name" value="{{ auth()->user()->name }}">
                     <div class="modal-body py-4">
                         <p class="text-muted small">Setting your last donation date correctly helps maintain your
                             eligibility status.</p>
