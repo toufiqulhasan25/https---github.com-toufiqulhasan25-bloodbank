@@ -18,9 +18,10 @@ class DonorController extends Controller
         $user = Auth::user();
 
         // নতুন নোটিফিকেশন চেক করা
+        // আপনার কন্ট্রোলারের index মেথডের এই লাইনটি পরিবর্তন করুন:
         $notifications = Notification::where('user_id', $user->id)
+            ->where('is_read', false) // শুধুমাত্র যেগুলো পড়া হয়নি
             ->latest()
-            ->take(5)
             ->get();
 
         // মোট কতবার রক্ত দিয়েছে (Approved Appointments)
@@ -79,6 +80,18 @@ class DonorController extends Controller
         return redirect("tel:{$donor->phone}");
     }
 
+    // নোটিফিকেশন 'Read' করার মেথড
+    public function markNotificationRead($id)
+    {
+        // শুধুমাত্র নিজের নোটিফিকেশনই আপডেট করতে পারবে
+        $notification = Notification::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        $notification->update(['is_read' => true]);
+
+        return back()->with('success', 'Notification cleared!');
+    }
 
 
     public function history()

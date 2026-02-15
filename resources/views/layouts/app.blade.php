@@ -142,6 +142,10 @@
                 <a href="/hospital/history" class="nav-link {{ request()->is('hospital/history*') ? 'active' : '' }}">
                     <i class="fa-solid fa-box-archive"></i> Request History
                 </a>
+                <a class="nav-link {{ request()->routeIs('hospital.patient.requests') ? 'active' : '' }}"
+                    href="{{ route('hospital.patient.requests') }}">
+                    <i class="fa-solid fa-bell me-2"></i> <span>Patient Requests</span>
+                </a>
             @endif
 
             {{-- MANAGER MENU --}}

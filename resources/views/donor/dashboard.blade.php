@@ -30,23 +30,41 @@
         </div>
 
         {{-- Notifications Section --}}
-        @foreach($notifications->where('is_read', false) as $notification)
+        @php
+            // আপনার কন্ট্রোলার থেকে আসা নোটিফিকেশন ছাড়াও সরাসরি ডাটাবেস থেকে অপঠিতগুলো আনা হচ্ছে
+            $allNotifications = DB::table('notifications')
+                ->where('user_id', auth()->id())
+                ->where('is_read', 0)
+                ->latest()
+                ->get();
+        @endphp
+
+        @foreach($allNotifications as $notification)
             <div
-                class="alert alert-danger border-0 shadow-sm rounded-4 p-3 mb-4 d-flex justify-content-between align-items-center animate__animated animate__pulse animate__infinite">
+                class="alert {{ str_contains($notification->message, 'APPROVED') ? 'alert-success' : 'alert-danger' }} border-0 shadow-sm rounded-4 p-3 mb-4 d-flex justify-content-between align-items-center animate__animated animate__pulse">
                 <div class="d-flex align-items-center">
-                    <div class="bg-white text-danger rounded-circle p-2 me-3 shadow-sm">
-                        <i class="fa-solid fa-bell-exclamation"></i>
+                    <div
+                        class="bg-white {{ str_contains($notification->message, 'APPROVED') ? 'text-success' : 'text-danger' }} rounded-circle p-2 me-3 shadow-sm">
+                        <i
+                            class="fa-solid {{ str_contains($notification->message, 'APPROVED') ? 'fa-circle-check' : 'fa-bell-exclamation' }}"></i>
                     </div>
+                    {{-- আপনার ড্যাশবোর্ড ব্লেড ফাইলের মেসেজ অংশ --}}
                     <div>
-                        <strong class="d-block">Urgent Blood Request!</strong>
-                        <span class="small">{{ $notification->sender_name }} {{ $notification->message }}</span>
+                        <strong class="d-block">{{ $notification->sender_name }}</strong>
+                        <span class="small">{{ $notification->message }}</span>
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <small class="text-muted me-2 align-self-center">{{ $notification->created_at->diffForHumans() }}</small>
-                    <form action="{{ route('notifications.read', $notification->id) }}" method="POST" class="d-inline">
+                    <small
+                        class="text-muted me-2 align-self-center">{{ \Carbon\Carbon::parse($notification->created_at)->diffForHumans() }}</small>
+
+                    {{-- মার্ক এজ রিড বাটন --}}
+                    <form action="{{ route('notifications.markRead', $notification->id) }}" method="POST" class="d-inline">
                         @csrf
-                        <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3">Mark as Seen</button>
+                        <button type="submit"
+                            class="btn btn-sm {{ str_contains($notification->message, 'APPROVED') ? 'btn-success' : 'btn-dark' }} rounded-pill px-3">
+                            Got it!
+                        </button>
                     </form>
                 </div>
             </div>
@@ -166,7 +184,7 @@
                                             <td>
                                                 <span
                                                     class="badge rounded-pill px-3 py-2 
-                                                            {{ $app->status == 'approved' ? 'bg-success-subtle text-success' : ($app->status == 'pending' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger') }}">
+                                                                            {{ $app->status == 'approved' ? 'bg-success-subtle text-success' : ($app->status == 'pending' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger') }}">
                                                     {{ ucfirst($app->status) }}
                                                 </span>
                                             </td>

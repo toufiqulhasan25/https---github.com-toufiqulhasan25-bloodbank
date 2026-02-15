@@ -39,4 +39,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function stocks()
+    {
+        return $this->hasMany(BloodStock::class, 'user_id');
+    }
 }

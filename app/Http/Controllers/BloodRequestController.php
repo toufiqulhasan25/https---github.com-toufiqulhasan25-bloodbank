@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
+use App\Models\PatientRequest;
 
 class BloodRequestController extends Controller
 {
@@ -142,4 +143,27 @@ class BloodRequestController extends Controller
         // ডিটেইলস ভিউ ফাইলটি রিটার্ন করবে
         return view('hospital.request_details', compact('bloodRequest'));
     }
+
+    public function storePatientRequest(Request $request)
+{
+    $request->validate([
+        'hospital_id'    => 'required',
+        'blood_group'    => 'required',
+        'patient_name'   => 'required|string|max:255',
+        'contact_number' => 'required',
+        'bags'           => 'required|integer|min:1',
+    ]);
+
+    PatientRequest::create([
+        'user_id'        => auth()->id(), // এখন নিশ্চিতভাবে আইডি পাওয়া যাবে
+        'hospital_id'    => $request->hospital_id,
+        'blood_group'    => $request->blood_group,
+        'bags'           => $request->bags,
+        'patient_name'   => $request->patient_name,
+        'contact_number' => $request->contact_number,
+        'status'         => 'pending',
+    ]);
+
+    return back()->with('success', 'Your blood request submitted successfully to hospital!');
+}
 }

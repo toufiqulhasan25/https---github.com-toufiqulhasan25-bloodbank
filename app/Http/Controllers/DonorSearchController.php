@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User; // যেখানে ডোনার এবং হসপিটালের তথ্য আছে
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 class DonorSearchController extends Controller
 {
@@ -13,26 +14,43 @@ class DonorSearchController extends Controller
         $location = $request->input('location');
         $type = $request->input('type');
 
-        // শুধুমাত্র ডোনার এবং হসপিটালদের সার্চ রেজাল্টে রাখা (ম্যানেজার বা এডমিন নয়)
-        $query = User::whereIn('role', ['donor', 'hospital']);
+        // ১. কুয়েরি শুরু করা
+        $query = User::query();
 
-        // ব্লাড গ্রুপ ফিল্টার
+        // ২. শুধুমাত্র ডোনার এবং হসপিটাল ফিল্টার করা
+        $query->whereIn('role', ['donor', 'hospital']);
+
+        // ৩. ডাইনামিক ব্লাড গ্রুপ ফিল্টার (ডোনার এবং হসপিটালের জন্য আলাদা লজিক)
         if ($request->filled('blood_group')) {
-            $query->where('blood_group', $bloodGroup);
+            $query->where(function (Builder $q) use ($bloodGroup) {
+                // ডোনারের ক্ষেত্রে সরাসরি কলাম চেক
+                $q->where(function ($sub) use ($bloodGroup) {
+                    $sub->where('role', 'donor')
+                        ->where('blood_group', $bloodGroup);
+                })
+                // হসপিটালের ক্ষেত্রে blood_stocks টেবিল চেক
+                ->orWhere(function ($sub) use ($bloodGroup) {
+                    $sub->where('role', 'hospital')
+                        ->whereHas('stocks', function ($stockQuery) use ($bloodGroup) {
+                            $stockQuery->where('blood_group', $bloodGroup)
+                                       ->where('bags', '>', 0);
+                        });
+                });
+            });
         }
 
-        // লোকেশন ফিল্টার
+        // ৪. লোকেশন ফিল্টার
         if ($request->filled('location')) {
             $query->where('address', 'like', "%$location%");
         }
 
-        // সোর্স টাইপ ফিল্টার (ডোনার নাকি হসপিটাল)
+        // ৫. সোর্স টাইপ ফিল্টার (ডোনার নাকি হসপিটাল)
         if ($request->filled('type') && $type !== 'all') {
             $query->where('role', $type);
         }
 
-        // get() এর বদলে paginate() ব্যবহার করুন যাতে total() এবং links() কাজ করে
-        $results = $query->latest()->paginate(10)->withQueryString();
+        // ৬. রেজাল্ট নিয়ে আসা (Pagination সহ)
+        $results = $query->with('stocks')->latest()->paginate(10)->withQueryString();
 
         return view('find-blood', compact('results'));
     }
